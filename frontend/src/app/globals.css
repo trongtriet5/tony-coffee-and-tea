@@ -1,0 +1,121 @@
+@import url('https://fonts.cdnfonts.com/css/segoe-ui-4');
+@import "tailwindcss";
+
+:root {
+  --bg-primary: #F8F9FA;
+  --bg-secondary: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --bg-hover: #F2EDC2; /* Using the pale cream for hover */
+  --border: #E9ECEF;
+  --border-light: #F1F3F5;
+  --accent: #346739; /* Dark Green Primary */
+  --accent-hover: #79AE6F; /* Mid Green */
+  --accent-light: rgba(52, 103, 57, 0.1);
+  --success: #346739;
+  --success-light: rgba(52, 103, 57, 0.1);
+  --warning: #F39C12;
+  --warning-light: rgba(243, 156, 18, 0.1);
+  --danger: #E74C3C;
+  --danger-light: rgba(231, 76, 60, 0.1);
+  --text-primary: #1A2E19; /* Darker green-tinted text */
+  --text-secondary: #5C6B5B;
+  --text-muted: #ADB5BD;
+  --gold-gradient: linear-gradient(135deg, #346739, #79AE6F);
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(52, 103, 57, 0.08);
+  --shadow-lg: 0 10px 25px rgba(52, 103, 57, 0.15);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent-light);
+}
+
+.btn-primary {
+  background: var(--gold-gradient);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(225, 194, 51, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(225, 194, 51, 0.4);
+}
+
+.badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.badge-success { background: var(--success-light); color: var(--success); }
+.badge-warning { background: var(--warning-light); color: var(--warning); }
+.badge-danger { background: var(--danger-light); color: var(--danger); }
+.badge-accent { background: var(--accent-light); color: var(--accent); }
+
+/* Skeleton */
+.skeleton {
+  background: #f0f0f0;
+  background: linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

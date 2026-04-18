@@ -1,0 +1,21 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://postgres.nqzzgrdzlzsxhicmljat:trongtriet5@aws-1-ap-south-1.pooler.supabase.com:5432/postgres?pgbouncer=true"
+}
+
+model Branch {
+  id         String   @id @default(uuid())
+  name       String   @unique
+  address    String?
+  phone      String?
+  created_at DateTime @default(now())
+  employees  Employee[]
+  tables     Table[]
+  orders     Order[]
+  materials  Material[]
+  @@map("branches")
+}

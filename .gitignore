@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Next.js
+.next/
+out/
+
+# Production
+build/
+dist/
+
+# Env / Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS File
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Prisma
+/prisma/migrations/
+/prisma/*.db
+/prisma/schema.prisma.bak
+
+# Log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
