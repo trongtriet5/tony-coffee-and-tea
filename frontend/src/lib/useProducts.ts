@@ -2,7 +2,7 @@ import useSWR, { mutate } from 'swr';
 import { getProducts, getCategories, getToppings, createProduct, updateProduct, deleteProduct, createTopping, updateTopping, deleteTopping } from './api';
 import type { Product, Topping } from '@/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_URL = '/api';
 
 export function useProducts(all: boolean = true) {
   const { data, error, isLoading, mutate: mutateProducts } = useSWR<Product[]>(

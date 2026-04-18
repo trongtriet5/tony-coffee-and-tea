@@ -18,9 +18,17 @@ export async function GET(request: Request) {
     where,
     include: {
       orders: {
-        where: { status: 'PENDING' },
-        take: 1,
+        where: { status: { in: ['PENDING', 'COMPLETED'] } },
+        take: 10,
         orderBy: { created_at: 'desc' },
+        include: {
+          items: {
+            include: {
+              product: true,
+              toppings: true,
+            },
+          },
+        },
       },
     },
   });
@@ -31,11 +39,20 @@ export async function GET(request: Request) {
     status: t.status,
     branch_id: t.branch_id,
     area: t.area,
-    current_order: t.orders?.[0] ? {
-      id: t.orders[0].id,
-      order_number: t.orders[0].order_number,
-      order_type: t.orders[0].order_type,
-    } : undefined,
+    orders: t.orders.map((o: any) => ({
+      id: o.id,
+      order_number: o.order_number,
+      order_type: o.order_type,
+      final_amount: o.final_amount,
+      created_at: o.created_at,
+      items: o.items.map((item: any) => ({
+        id: item.id,
+        quantity: item.quantity,
+        subtotal: item.subtotal,
+        product: item.product,
+        toppings: item.toppings,
+      })),
+    })),
   })).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
 
   return NextResponse.json(formatted);

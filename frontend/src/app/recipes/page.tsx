@@ -32,7 +32,7 @@ export default function RecipePage() {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
@@ -194,7 +194,7 @@ export default function RecipePage() {
   const labelStyle = { fontSize: 13, fontWeight: 700, color: "var(--text-muted)", marginBottom: 8, display: "block" };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-primary)", padding: isMobile ? "32px 24px" : "40px 40px 60px 120px" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg-primary)", padding: isMobile ? "24px 16px" : "40px 40px 60px 120px" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
 
         {/* HEADER */}
@@ -404,18 +404,47 @@ export default function RecipePage() {
                   <div style={{ paddingTop: 20, borderTop: "2px solid var(--bg-primary)" }}>
                     <h4 style={{ fontSize: 11, fontWeight: 900, marginBottom: 16, color: "var(--text-muted)" }}>THÊM NGUYÊN LIỆU MỚI</h4>
                     <form onSubmit={handleAddRecipe}>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: activeTab === "product" ? "1.2fr 1fr 1fr" : "1.2fr 1fr", gap: 12, marginBottom: 16 }}>
                         {activeTab === "product" && (
                           <div>
-                            <label style={labelStyle}>Size</label>
-                            <label style={labelStyle}>Định lượng (số)</label>
-                            <label style={labelStyle}>Nguyên liệu</label>
-                            <select style={{ ...inputStyle, padding: "8px 12px" }} value={recipeForm.material_id} onChange={e => setRecipeForm({ ...recipeForm, material_id: e.target.value })} required>
-                              <option value="">-- Chọn nguyên liệu --</option>
-                              {materials.map(m => <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>)}
+                            <label style={labelStyle}>SIZE</label>
+                            <select 
+                              style={{ ...inputStyle, padding: "10px 12px" }} 
+                              value={selectedVariantId} 
+                              onChange={e => setSelectedVariantId(e.target.value)} 
+                              required
+                            >
+                              <option value="">-- Chọn Size --</option>
+                              {products.find(p => p.id === selectedProductId)?.variants?.map(v => (
+                                <option key={v.id} value={v.id}>{v.size}</option>
+                              ))}
                             </select>
                           </div>
                         )}
+                        <div>
+                          <label style={labelStyle}>NGUYÊN LIỆU</label>
+                          <select 
+                            style={{ ...inputStyle, padding: "10px 12px" }} 
+                            value={recipeForm.material_id} 
+                            onChange={e => setRecipeForm({ ...recipeForm, material_id: e.target.value })} 
+                            required
+                          >
+                            <option value="">-- Chọn --</option>
+                            {materials.map(m => <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label style={labelStyle}>ĐỊNH LƯỢNG</label>
+                          <input 
+                            type="number" 
+                            step="0.001" 
+                            placeholder="Số lượng..." 
+                            style={{ ...inputStyle, padding: "10px 12px" }} 
+                            value={recipeForm.quantity} 
+                            onChange={e => setRecipeForm({ ...recipeForm, quantity: e.target.value })} 
+                            required 
+                          />
+                        </div>
                       </div>
                       <button disabled={loading} type="submit" style={{ width: "100%", padding: 14, background: "var(--accent)", color: "white", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 900, cursor: "pointer", display: "flex", gap: 8, alignItems: "center", justifyContent: "center", transition: "0.2s" }} className="hover-btn">
                         {loading ? <AiOutlineLoading3Quarters size={16} className="spin" /> : <><HiPlus size={18} /> XÁC NHẬN THÊM</>}

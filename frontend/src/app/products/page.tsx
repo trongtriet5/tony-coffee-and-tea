@@ -28,7 +28,7 @@ export default function ProductsManagementPage() {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
@@ -222,7 +222,7 @@ export default function ProductsManagementPage() {
                     <div>
                       <label style={labelStyle}>Danh mục</label>
                       <select disabled={currentUser?.role !== 'ADMIN'} style={{ ...inputStyle, opacity: currentUser?.role !== 'ADMIN' ? 0.6 : 1 }} value={productForm.category} onChange={e => setProductForm({ ...productForm, category: e.target.value })}>
-                        {categories.map(c => <option key={c.category} value={c.category}>{c.category}</option>)}
+                        {categories.map(c => <option key={c.category} value={c.category}>{c.category || "KHÁC"}</option>)}
                         {!categories.find(c => c.category === "Cà Phê") && <option value="Cà Phê">Cà Phê</option>}
                       </select>
                       {currentUser?.role === 'ADMIN' && (
@@ -339,7 +339,7 @@ export default function ProductsManagementPage() {
                                 {p.available ? <HiBadgeCheck size={16} color="var(--success)" /> : <HiBan size={16} color="var(--danger)" />}
                               </div>
                               <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text-secondary)", display: "flex", gap: 8 }}>
-                                <span style={{ background: "white", padding: "2px 8px", borderRadius: 6 }}>{(p as any).category}</span>
+                                <span style={{ background: "white", padding: "2px 8px", borderRadius: 6 }}>{(p as any).category || "KHÁC"}</span>
                                 <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format((p as any).price ?? (p.variants?.length > 0 ? Math.min(...p.variants.map((v: any) => v.price)) : 0))}</span>
                               </div>
                             </div>

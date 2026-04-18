@@ -140,9 +140,21 @@ export interface Table {
   status: TableStatus;
   branch_id: string;
   area?: string;
-  current_order?: {
+  orders?: {
     id: string;
     order_number: string;
     order_type: OrderType;
-  };
+    final_amount: number;
+    created_at: string;
+    items?: {
+      id: string;
+      quantity: number;
+      subtotal: number;
+      product?: {
+        id: string;
+        name_vi?: string;
+      };
+      toppings?: any[];
+    }[];
+  }[];
 }

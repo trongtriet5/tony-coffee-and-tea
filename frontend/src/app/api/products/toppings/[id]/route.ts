@@ -8,7 +8,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getAuthUser();
-  if (!user || user.role !== 'ADMIN') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!user || (user.role !== 'ADMIN' && user.role !== 'MANAGER')) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
   const { id } = await params;
   try {

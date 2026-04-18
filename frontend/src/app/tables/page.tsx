@@ -14,7 +14,7 @@ export default function TablesManagementPage() {
   const [occupancyStats, setOccupancyStats] = useState<any>(null);
 
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
@@ -85,17 +85,9 @@ export default function TablesManagementPage() {
     setIsTransferring(false);
     setTransferTarget("");
 
-    if (table.current_order?.id) {
-      setOrderLoading(true);
-      try {
-        const orderData = await getOrder(table.current_order.id);
-        setSelectedOrder(orderData);
-      } catch (e) {
-        console.error("Failed to load order:", e);
-        setSelectedOrder(null);
-      } finally {
-        setOrderLoading(false);
-      }
+    // Use the latest order from table.orders directly (no need to fetch separately)
+    if (table.orders && table.orders.length > 0) {
+      setSelectedOrder(table.orders[0]);
     } else {
       setSelectedOrder(null);
     }
@@ -174,12 +166,11 @@ export default function TablesManagementPage() {
   };
 
   const handleRelease = async (id: string) => {
-    // If releasing table with an order, realistically we'd redirect to checkout
-    // But for now just call release API
     try {
       setLoading(true);
       await releaseTable(id);
       toastSuccess("Đã kết thúc sử dụng bàn");
+      setSelectedOrder(null);
       await fetchData();
     } catch (err) {
       toastError('Lỗi kết thúc bàn');
@@ -328,23 +319,36 @@ export default function TablesManagementPage() {
                   <button onClick={() => setShowAddForm(false)} style={{ background: "transparent", color: "var(--text-muted)", fontSize: 11, border: "none", fontWeight: 800, cursor: "pointer" }}>HỦY</button>
                 </h3>
                 <form onSubmit={handleAddTable} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                  <div>
-<label style={labelStyle}>Tên bàn cụ thể</label>
-                    <div style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: "var(--text-muted)" }}>Hoặc tạo nhiều bàn cùng lúc</div>
-                    <label style={labelStyle}>Số lượng bàn cần tạo</label>
-                    <input
-                      type="number" min="1" max="100" placeholder="vd: 10" style={inputStyle} value={tableCount}
-                      onChange={e => { setTableCount(e.target.value); if (e.target.value) setTableName(''); }}
-                    />
-                    {(() => {
-                      const existingTableNumbers = tables
-                        .filter(t => t.name?.match(/^Bàn\s*(\d+)$/))
-                        .map(t => parseInt(t.name.replace('Bàn ', '').trim()));
-                      const startNum = existingTableNumbers.length > 0 ? Math.max(...existingTableNumbers) + 1 : 1;
-                      const count = parseInt(tableCount) || 0;
-                      const endNum = startNum + count - 1;
-                      return count > 0 ? <p style={{ fontSize: 11, color: "var(--accent)", marginTop: 8, fontWeight: 700 }}>Sẽ tự động tạo: Bàn {startNum} - Bàn {endNum}</p> : null;
-                    })()}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    <div>
+                      <label style={labelStyle}>Tên bàn cụ thể</label>
+                      <input
+                        placeholder="vd: Bàn VIP 1" style={inputStyle} value={tableName}
+                        onChange={e => { setTableName(e.target.value); if (e.target.value) setTableCount(''); }}
+                      />
+                    </div>
+                    
+                    <div style={{ position: "relative", textAlign: "center", margin: "4px 0" }}>
+                      <span style={{ background: "white", padding: "0 12px", fontSize: 10, fontWeight: 900, color: "var(--text-muted)", position: "relative", zIndex: 2 }}>HOẶC</span>
+                      <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 1, background: "var(--border)", zIndex: 1 }} />
+                    </div>
+
+                    <div>
+                      <label style={labelStyle}>Số lượng bàn cần tạo</label>
+                      <input
+                        type="number" min="1" max="100" placeholder="vd: 10" style={inputStyle} value={tableCount}
+                        onChange={e => { setTableCount(e.target.value); if (e.target.value) setTableName(''); }}
+                      />
+                      {(() => {
+                        const existingTableNumbers = tables
+                          .filter(t => t.name?.match(/^Bàn\s*(\d+)$/))
+                          .map(t => parseInt(t.name.replace('Bàn ', '').trim()));
+                        const startNum = existingTableNumbers.length > 0 ? Math.max(...existingTableNumbers) + 1 : 1;
+                        const count = parseInt(tableCount) || 0;
+                        const endNum = startNum + count - 1;
+                        return count > 0 ? <p style={{ fontSize: 11, color: "var(--accent)", marginTop: 8, fontWeight: 700 }}>Sẽ tự động tạo: Bàn {startNum} - Bàn {endNum}</p> : null;
+                      })()}
+                    </div>
                   </div>
                   <button disabled={loading || (!tableName && !tableCount)} type="submit" style={{ width: "100%", padding: 16, background: "var(--accent)", color: "white", border: "none", borderRadius: 14, fontSize: 13, fontWeight: 900, cursor: "pointer", display: "flex", gap: 8, alignItems: "center", justifyContent: "center", transition: "0.2s", marginTop: 12 }} className="hover-btn">
                     {loading ? <AiOutlineLoading3Quarters size={18} className="spin" /> : <><HiPlus size={18} /> THÊM NGAY</>}
@@ -400,72 +404,120 @@ export default function TablesManagementPage() {
                           </button>
                         </div>
                       </div>
-                    ) : selectedOrder ? (
+                    ) : selectedTable?.orders && selectedTable.orders.length > 0 ? (
                       <div>
-                        <div style={{ marginBottom: 16 }}>
-                          <p style={{ fontSize: 11, fontWeight: 900, color: "var(--text-muted)", marginBottom: 4 }}>MÃ HÓA ĐƠN</p>
-                          <p style={{ fontSize: 14, fontWeight: 900 }}>{selectedOrder.order_number}</p>
-                        </div>
-
-                        <div style={{ marginBottom: 24 }}>
-                          <p style={{ fontSize: 11, fontWeight: 900, color: "var(--text-muted)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><HiOutlineShoppingCart size={16} /> CHI TIẾT MÓN</p>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: "30vh", overflowY: "auto", paddingRight: 8 }} className="custom-scroll">
-                            {selectedOrder.items?.map(item => (
-                              <div key={item.id} style={{ background: "var(--bg-primary)", padding: 12, borderRadius: 12 }}>
+                        <div style={{ marginBottom: 20 }}>
+                          <p style={{ fontSize: 11, fontWeight: 900, color: "var(--text-muted)", marginBottom: 12 }}>CÁC ĐƠN HÀNG CỦA BÀN</p>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {selectedTable.orders.map((order: any) => (
+                              <div 
+                                key={order.id} 
+                                onClick={() => setSelectedOrder(order)}
+                                style={{ 
+                                  padding: 12, 
+                                  borderRadius: 12, 
+                                  background: selectedOrder?.id === order.id ? "var(--accent-light)" : "var(--bg-primary)",
+                                  border: selectedOrder?.id === order.id ? "2px solid var(--accent)" : "2px solid transparent",
+                                  cursor: "pointer"
+                                }}
+                              >
                                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                  <p style={{ fontSize: 13, fontWeight: 800 }}>{item.quantity} x {item.product?.name_vi || 'Món'}</p>
-                                  <p style={{ fontSize: 13, fontWeight: 900, color: "var(--accent)" }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.subtotal)}</p>
+                                  <span style={{ fontSize: 13, fontWeight: 800 }}>{order.order_number}</span>
+                                  <span style={{ fontSize: 13, fontWeight: 900, color: "var(--accent)" }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.final_amount)}</span>
                                 </div>
-                                {item.toppings && item.toppings.length > 0 && (
-                                  <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 700, paddingLeft: 8 }}>
-                                    + Topping: {item.toppings.map((t: any) => t.topping?.name || t.name).filter(Boolean).join(', ')}
-                                  </div>
-                                )}
+                                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                                  {new Date(order.created_at).toLocaleString("vi-VN")}
+                                </span>
                               </div>
                             ))}
                           </div>
                         </div>
 
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, padding: "16px 0", borderTop: "1px dashed var(--border)" }}>
-                          <p style={{ fontSize: 12, fontWeight: 900, color: "var(--text-muted)" }}>TỔNG THANH TOÁN</p>
-                          <p style={{ fontSize: 20, fontWeight: 900, color: "var(--accent)" }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(selectedOrder.final_amount)}</p>
-                        </div>
+                        {selectedOrder && (
+                          <>
+                            <div style={{ marginBottom: 16 }}>
+                              <p style={{ fontSize: 11, fontWeight: 900, color: "var(--text-muted)", marginBottom: 4 }}>MÃ HÓA ĐƠN</p>
+                              <p style={{ fontSize: 14, fontWeight: 900 }}>{selectedOrder.order_number}</p>
+                            </div>
 
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <button onClick={() => alert("Điều hướng tới trang thanh toán để in bill (Tương lai)")} style={{ flex: 1, padding: 12, background: "var(--bg-primary)", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 800, cursor: "pointer", transition: "0.2s" }} className="hover-btn">
-                            IN TẠM TÍNH
-                          </button>
-                          <button onClick={() => {
-                            window.location.href = `/?tableId=${selectedTable.id}&orderId=${selectedOrder.id}`;
-                          }} style={{ flex: 1, padding: 12, background: "var(--accent)", color: "white", border: "none", borderRadius: 12, fontSize: 12, fontWeight: 800, cursor: "pointer" }} className="hover-btn">
-                            GỌI THÊM
-                          </button>
-                          <button onClick={() => handleRelease(selectedTable.id)} disabled={loading} style={{ flex: 1, padding: 12, background: "var(--success)", color: "white", border: "none", borderRadius: 12, fontSize: 12, fontWeight: 800, cursor: "pointer", transition: "0.2s" }} className="hover-btn">
-                            HỦY / RỜI ĐI
-                          </button>
-                        </div>
-                        <div style={{ marginTop: 8 }}>
-                          <button onClick={() => setIsTransferring(true)} disabled={loading} style={{ width: "100%", padding: 12, background: "var(--bg-primary)", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 800, cursor: "pointer", transition: "0.2s" }} className="hover-btn">
-                            CHUYỂN BÀN
-                          </button>
-                        </div>
+                            <div style={{ marginBottom: 24 }}>
+                              <p style={{ fontSize: 11, fontWeight: 900, color: "var(--text-muted)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><HiOutlineShoppingCart size={16} /> CHI TIẾT MÓN</p>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: "30vh", overflowY: "auto", paddingRight: 8 }} className="custom-scroll">
+                                {selectedOrder.items?.map(item => (
+                                  <div key={item.id} style={{ background: "var(--bg-primary)", padding: 12, borderRadius: 12 }}>
+                                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                                      <p style={{ fontSize: 13, fontWeight: 800 }}>{item.quantity} x {item.product?.name_vi || 'Món'}</p>
+                                      <p style={{ fontSize: 13, fontWeight: 900, color: "var(--accent)" }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.subtotal)}</p>
+                                    </div>
+                                    {item.toppings && item.toppings.length > 0 && (
+                                      <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 700, paddingLeft: 8 }}>
+                                        + Topping: {item.toppings.map((t: any) => t.topping?.name || t.name).filter(Boolean).join(', ')}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, padding: "16px 0", borderTop: "1px dashed var(--border)" }}>
+                              <p style={{ fontSize: 12, fontWeight: 900, color: "var(--text-muted)" }}>TỔNG BÀN</p>
+                              <p style={{ fontSize: 20, fontWeight: 900, color: "var(--accent)" }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(selectedTable.orders.reduce((sum: number, o: any) => sum + (o.final_amount || 0), 0))}</p>
+                            </div>
+                          </>
+                        )}
+
+                        {currentUser?.role !== 'ADMIN' && (
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button onClick={() => alert("Điều hướng tới trang thanh toán để in bill (Tương lai)")} style={{ flex: 1, padding: 12, background: "var(--bg-primary)", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 800, cursor: "pointer", transition: "0.2s" }} className="hover-btn">
+                              IN TẠM TÍNH
+                            </button>
+                            <button onClick={() => {
+                              window.location.href = `/?tableId=${selectedTable.id}`;
+                            }} style={{ flex: 1, padding: 12, background: "var(--accent)", color: "white", border: "none", borderRadius: 12, fontSize: 12, fontWeight: 800, cursor: "pointer" }} className="hover-btn">
+                              GỌI THÊM
+                            </button>
+                            <button onClick={() => handleRelease(selectedTable.id)} disabled={loading} style={{ flex: 1, padding: 12, background: "var(--success)", color: "white", border: "none", borderRadius: 12, fontSize: 12, fontWeight: 800, cursor: "pointer", transition: "0.2s" }} className="hover-btn">
+                              HỦY / RỜI ĐI
+                            </button>
+                          </div>
+                        )}
+                        {currentUser?.role !== 'ADMIN' && (
+                          <div style={{ marginTop: 8 }}>
+                            <button onClick={() => setIsTransferring(true)} disabled={loading} style={{ width: "100%", padding: 12, background: "var(--bg-primary)", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 800, cursor: "pointer", transition: "0.2s" }} className="hover-btn">
+                              CHUYỂN BÀN
+                            </button>
+                          </div>
+                        )}
+                        {currentUser?.role === 'ADMIN' && (
+                          <div style={{ marginTop: 8, padding: 12, background: "var(--bg-primary)", borderRadius: 12, textAlign: "center", fontSize: 12, fontWeight: 700, color: "var(--text-muted)" }}>
+                            (Chỉ xem - Không thể thực hiện thao tác gọi món)
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                         <p style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 700, textAlign: "center", padding: 20 }}>Bàn đang bận nhưng không có đơn hàng chưa thanh toán.</p>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <button onClick={() => window.location.href = `/?tableId=${selectedTable.id}`} style={{ flex: 1.5, padding: 14, background: "var(--accent)", color: "white", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: "pointer" }} className="hover-btn">
-                            GỌI MÓN MỚI
-                          </button>
-                          <button onClick={() => handleRelease(selectedTable.id)} disabled={loading} style={{ flex: 1, padding: 14, background: "var(--danger)", color: "white", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: "pointer" }} className="hover-btn">
-                            GIẢI PHÓNG BÀN
-                          </button>
-                        </div>
-                        <div style={{ marginTop: 0 }}>
-                          <button onClick={() => setIsTransferring(true)} disabled={loading} style={{ width: "100%", padding: 12, background: "var(--bg-primary)", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 800, cursor: "pointer", transition: "0.2s" }} className="hover-btn">
-                            CHUYỂN BÀN
-                          </button>
-                        </div>
+                        {currentUser?.role !== 'ADMIN' ? (
+                          <>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button onClick={() => window.location.href = `/?tableId=${selectedTable.id}`} style={{ flex: 1.5, padding: 14, background: "var(--accent)", color: "white", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: "pointer" }} className="hover-btn">
+                                GỌI MÓN MỚI
+                              </button>
+                              <button onClick={() => handleRelease(selectedTable.id)} disabled={loading} style={{ flex: 1, padding: 14, background: "var(--danger)", color: "white", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: "pointer" }} className="hover-btn">
+                                GIẢI PHÓNG BÀN
+                              </button>
+                            </div>
+                            <div style={{ marginTop: 8 }}>
+                              <button onClick={() => setIsTransferring(true)} disabled={loading} style={{ width: "100%", padding: 12, background: "var(--bg-primary)", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 800, cursor: "pointer", transition: "0.2s" }} className="hover-btn">
+                                CHUYỂN BÀN
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ marginTop: 8, padding: 12, background: "var(--bg-primary)", borderRadius: 12, textAlign: "center", fontSize: 12, fontWeight: 700, color: "var(--text-muted)" }}>
+                            (Bàn đang bận - Chỉ Admin được xem hóa đơn)
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -475,9 +527,13 @@ export default function TablesManagementPage() {
                       <HiOutlineDesktopComputer size={32} color="var(--success)" />
                     </div>
                     <p style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 700, textAlign: "center" }}>Bàn đang trống, có thể sắp xếp khách vào.</p>
-                    <button onClick={() => handleOccupy(selectedTable.id)} disabled={loading} style={{ padding: "12px 32px", background: "var(--accent)", color: "white", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: "pointer", transition: "0.2s", marginTop: 8 }} className="hover-btn">
-                      MỞ BÀN (KHÁCH VÀO)
-                    </button>
+                    {currentUser?.role !== 'ADMIN' ? (
+                      <button onClick={() => handleOccupy(selectedTable.id)} disabled={loading} style={{ padding: "12px 32px", background: "var(--accent)", color: "white", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: "pointer", transition: "0.2s", marginTop: 8 }} className="hover-btn">
+                        MỞ BÀN (KHÁCH VÀO)
+                      </button>
+                    ) : (
+                      <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", marginTop: 8 }}>[Chỉ xem trạng thái bàn]</p>
+                    )}
                   </div>
                 )}
               </div>

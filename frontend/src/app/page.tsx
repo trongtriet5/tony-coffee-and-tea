@@ -83,7 +83,7 @@ const ReceiptTemplate = ({ order, branch }: { order: Order; branch?: Branch }) =
   return (
     <div id="receipt-print" style={{
       width: "80mm",
-      padding: "10mm 4mm",
+padding: "16px",
       background: "white",
       color: "black",
       fontFamily: "'Courier New', Courier, monospace",
@@ -104,15 +104,15 @@ const ReceiptTemplate = ({ order, branch }: { order: Order; branch?: Branch }) =
       {/* Bill Info */}
       <div style={{ marginBottom: "10px" }}>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>Số HĐ: {order.order_number || order.id?.toString().slice(-6).toUpperCase() || 'N/A'}</span>
+          <span style={{ fontWeight: "bold" }}>Số HĐ: {order.order_number}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}>
-          <span>Ngày in: {new Date(order.created_at).toLocaleDateString("vi-VN")}</span>
-          <span>Giờ in: {new Date(order.created_at).toLocaleTimeString("vi-VN")}</span>
+          <span>Ngày: {new Date(order.created_at).toLocaleDateString("vi-VN")}</span>
+          <span>Giờ: {new Date(order.created_at).toLocaleTimeString("vi-VN")}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px" }}>
           <span style={{ fontWeight: "bold" }}>Bàn:</span>
-          <span style={{ fontWeight: "bold", fontSize: "16px" }}>{(order as any).table?.name || order.table_id || "Mang đi"}</span>
+          <span style={{ fontWeight: "bold", fontSize: "16px" }}>{order.order_type === "TAKEAWAY" ? "Mang đi" : ((order as any).table?.name || order.table_id || "Mang đi")}</span>
         </div>
         <div style={{ fontSize: "11px", marginTop: "4px", display: "flex", justifyContent: "space-between" }}>
           <span>Thu ngân: {branch?.name || businessName}</span>
@@ -265,11 +265,11 @@ export default function POSPage() {
       };
 
       const sortedCats = cats
-        .map(c => c.category)
-        .filter(c => c.toUpperCase() !== "TOPPING") // Avoid duplication if it exists in DB
+        .map(c => typeof c === 'string' ? c : (c as any).category)
+        .filter(c => c && c.toUpperCase() !== "TOPPING")
         .sort((a, b) => (orderMap[a.toUpperCase()] || 99) - (orderMap[b.toUpperCase()] || 99));
 
-      setCategories([...sortedCats, "Topping"]);
+      setCategories([...new Set([...sortedCats, "Topping"])]);
       setToppings(tops);
 
       const params = new URLSearchParams(window.location.search);
@@ -420,6 +420,13 @@ export default function POSPage() {
     if (!selectedBranchId) { toastWarning("Vui lòng chọn chi nhánh"); return; }
     if (orderType === "DINE_IN" && !selectedTableId) { toastWarning("Vui lòng chọn bàn"); return; }
 
+    const isAddingToExisting = !!activeOrderId;
+
+    if (isAddingToExisting && paymentMethod === "BANK_TRANSFER") {
+      toastWarning("Vui lòng chọn tiền mặt cho món thêm vào bàn đang phục vụ");
+      return;
+    }
+
     setIsCheckingOut(true);
     try {
       const items = cart.map(i => ({
@@ -430,8 +437,10 @@ export default function POSPage() {
       }));
 
       let order;
-      if (activeOrderId) {
+      if (isAddingToExisting) {
         order = await addItemsToOrder(activeOrderId, items, paymentMethod);
+        toastSuccess(`Đã thêm ${cart.length} món vào bàn!`);
+        setCart([]); setDiscount(0);
       } else {
         const payload = {
           branch_id: selectedBranchId,
@@ -442,15 +451,20 @@ export default function POSPage() {
           discount_amount: discount
         };
         order = await createOrder(payload);
+        
+        // Nếu là order_type DINE_IN và có table_id, giữ nguyên table ở trạng thái OCCUPIED (không set lại về AVAILABLE)
+        if (orderType !== "DINE_IN" || !selectedTableId) {
+          setSelectedTableId(null);
+        }
+        
+        if (paymentMethod === "BANK_TRANSFER") {
+          setPaymentPending(order);
+        } else {
+          toastSuccess("Thanh toán thành công!");
+          setOrderSuccess(order);
+        }
+        setCart([]); setDiscount(0); setIsCartOpen(false); setActiveOrderId(null); setOrderType("TAKEAWAY");
       }
-
-      if (paymentMethod === "BANK_TRANSFER") {
-        setPaymentPending(order);
-      } else {
-        toastSuccess("Thanh toán thành công!");
-        setOrderSuccess(order);
-      }
-      setCart([]); setDiscount(0); setIsCartOpen(false); setSelectedTableId(null); setActiveOrderId(null);
     } catch (err) { toastError("Lỗi hệ thống khi thanh toán"); } finally { setIsCheckingOut(false); }
   };
 
@@ -458,12 +472,22 @@ export default function POSPage() {
     const printContent = document.getElementById("receipt-print");
     if (!printContent) return;
 
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+    // Create a hidden iframe
+    let iframe = document.getElementById("print-iframe") as HTMLIFrameElement;
+    if (!iframe) {
+      iframe = document.createElement("iframe");
+      iframe.id = "print-iframe";
+      iframe.style.display = "none";
+      document.body.appendChild(iframe);
+    }
 
-    printWindow.document.write('<html><head><title>In hóa đơn</title>');
-    printWindow.document.write('<style>');
-    printWindow.document.write(`
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+
+    doc.open();
+    doc.write('<html><head><title>In hóa đơn</title>');
+    doc.write('<style>');
+    doc.write(`
       @page { size: 80mm auto; margin: 0; }
       body { margin: 0; padding: 0; }
       #receipt-print {
@@ -473,48 +497,18 @@ export default function POSPage() {
         box-sizing: border-box !important;
       }
       table { width: 100%; border-collapse: collapse; }
-      * { font-family: 'Courier New', Courier, monospace !important; box-sizing: border-box; }
+      * { font-family: 'Courier New', Courier, monospace !important; box-sizing: border-box; font-size: 13px; }
     `);
-    printWindow.document.write('</style></head><body>');
-    printWindow.document.write(printContent.outerHTML);
-    printWindow.document.write('</body></html>');
-    printWindow.document.close();
+    doc.write('</style></head><body>');
+    doc.write(printContent.innerHTML);
+    doc.write('</body></html>');
+    doc.close();
 
-    // Wait for images (QR) to load
-    const images = printWindow.document.querySelectorAll('img');
-    if (images.length > 0) {
-      let loadedCount = 0;
-      images.forEach(img => {
-        img.onload = () => {
-          loadedCount++;
-          if (loadedCount === images.length) {
-            printWindow.focus();
-            printWindow.print();
-            printWindow.close();
-          }
-        };
-        img.onerror = () => {
-          loadedCount++;
-          if (loadedCount === images.length) {
-            printWindow.focus();
-            printWindow.print();
-            printWindow.close();
-          }
-        };
-      });
-      // Fallback
-      setTimeout(() => {
-        if (printWindow) {
-          printWindow.focus();
-          printWindow.print();
-          // printWindow.close();
-        }
-      }, 1500);
-    } else {
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
-    }
+    // Wait for content (especially fonts/images if any) to render
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    }, 300);
   };
 
 
@@ -578,8 +572,22 @@ export default function POSPage() {
         <div style={{ display: "flex", gap: 10, padding: isMobile ? "12px 20px" : "0 0 28px", overflowX: "auto" }}>
           <button onClick={() => setSelectedCategory("all")} style={{ padding: "10px 22px", borderRadius: 12, border: selectedCategory === "all" ? "none" : "1px solid var(--border)", cursor: "pointer", whiteSpace: "nowrap", fontWeight: 800, fontSize: 14, background: selectedCategory === "all" ? "var(--gold-gradient)" : "white", color: selectedCategory === "all" ? "white" : "var(--text-secondary)" }}>TẤT CẢ</button>
           {categories.map((cat) => (
-            <button key={cat} onClick={() => setSelectedCategory(cat)} style={{ padding: "10px 22px", borderRadius: 12, border: selectedCategory === cat ? "none" : "1px solid var(--border)", cursor: "pointer", whiteSpace: "nowrap", fontWeight: 800, fontSize: 14, background: selectedCategory === cat ? "var(--gold-gradient)" : "white", color: selectedCategory === cat ? "white" : "var(--text-secondary)" }}>
-              {cat.toUpperCase()}
+            <button 
+              key={cat} 
+              onClick={() => setSelectedCategory(cat)} 
+              style={{ 
+                padding: "10px 22px", 
+                borderRadius: 12, 
+                border: selectedCategory === cat ? "none" : "1px solid var(--border)", 
+                cursor: "pointer", 
+                whiteSpace: "nowrap", 
+                fontWeight: 800, 
+                fontSize: 14, 
+                background: selectedCategory === cat ? "var(--gold-gradient)" : "white", 
+                color: selectedCategory === cat ? "white" : "var(--text-secondary)" 
+              }}
+            >
+              {(cat || "KHÁC").toUpperCase()}
             </button>
           ))}
         </div>
@@ -588,7 +596,12 @@ export default function POSPage() {
         <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px" : "4px 8px 12px 4px", display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fill, minmax(160px, 1fr))", gap: isMobile ? 16 : 20, alignItems: "start", alignContent: "start" }}>
           {filteredProducts.map((p) => {
             const Icon = CATEGORY_ICONS[p.category] || BiCoffeeTogo;
-            const minPrice = p.variants?.length ? Math.min(...p.variants.map((v: ProductVariant) => v.price)) : (p as any).price || 0;
+            const minPrice = p.variants?.length 
+              ? Math.min(...p.variants.map((v: ProductVariant) => v.price)) 
+              : (p as any).price || 0;
+            
+            // Final safety check to avoid NaN
+            const safePrice = isNaN(minPrice) ? 0 : minPrice;
             return (
               <div key={p.id} onClick={() => handleItemClick(p)} style={{ background: "white", border: "1px solid var(--border)", borderRadius: 24, padding: "20px", cursor: "pointer", display: "flex", flexDirection: "column", height: "fit-content", minHeight: "200px" }}>
                 <div style={{ width: 48, height: 48, borderRadius: 12, background: "var(--accent-light)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
@@ -597,7 +610,7 @@ export default function POSPage() {
                 <p style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>{p.name_vi}</p>
                 {p.variants?.length > 1 && <p style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 700, marginBottom: 8 }}>{p.variants.length} CỠ SIZE</p>}
                 <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 16, fontWeight: 900, color: "var(--accent)" }}>{formatVND(minPrice)}{p.variants?.length > 1 ? '+' : ''}</span>
+                  <span style={{ fontSize: 16, fontWeight: 900, color: "var(--accent)" }}>{formatVND(safePrice || 0)}{p.variants?.length > 1 ? '+' : ''}</span>
                   <div style={{ width: 34, height: 34, borderRadius: 10, background: "var(--gold-gradient)", display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}><HiPlus size={20} /></div>
                 </div>
               </div>
@@ -710,7 +723,7 @@ export default function POSPage() {
               </div>
             </div>
 
-            <button onClick={checkout} disabled={cart.length === 0 || isCheckingOut || (orderType === "DINE_IN" && !selectedTableId)} className="btn-primary" style={{ width: "100%", padding: 18 }}>
+            <button onClick={checkout} disabled={cart.length === 0 || isCheckingOut || (orderType === "DINE_IN" && !selectedTableId && !activeOrderId)} className="btn-primary" style={{ width: "100%", padding: 18 }}>
               {isCheckingOut ? <AiOutlineLoading3Quarters size={22} className="spin" /> : "XÁC NHẬN ĐƠN HÀNG"}
             </button>
           </div>

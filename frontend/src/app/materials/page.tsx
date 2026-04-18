@@ -317,7 +317,7 @@ export default function MaterialsPage() {
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 4, color: "var(--text-primary)" }}>{m.name}</div>
                           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", display: "flex", gap: 12 }}>
-                            <span>Kho: <span style={{ color: isLowStock ? "var(--danger)" : "var(--success)", fontWeight: 900 }}>{m.stock_current} {m.unit}</span></span>
+                            <span>Kho: <span style={{ color: isLowStock ? "var(--danger)" : "var(--success)", fontWeight: 900 }}>{m.stock_current.toFixed(2)} {m.unit}</span></span>
                             <span>Giá: {new Intl.NumberFormat('vi-VN').format(m.cost_per_unit)} ₫</span>
                           </div>
                         </div>
@@ -392,7 +392,7 @@ export default function MaterialsPage() {
                       )}
                       <th style={{ padding: "16px 24px", fontSize: 11, fontWeight: 900, color: "var(--text-muted)", borderBottom: "2px solid var(--bg-primary)", textAlign: "center" }}>LOẠI</th>
                       <th style={{ padding: "16px 24px", fontSize: 11, fontWeight: 900, color: "var(--text-muted)", borderBottom: "2px solid var(--bg-primary)", textAlign: "right" }}>SL</th>
-                      <th style={{ padding: "16px 24px", fontSize: 11, fontWeight: 900, color: "var(--text-muted)", borderBottom: "2px solid var(--bg-primary)", textAlign: "left" }}>GHI CHÚ</th>
+                      <th style={{ padding: "16px 24px", fontSize: 11, fontWeight: 900, color: "var(--text-muted)", borderBottom: "2px solid var(--bg-primary)", textAlign: "left", width: 180 }}>GHI CHÚ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -427,9 +427,9 @@ export default function MaterialsPage() {
                               </span>
                             </td>
                             <td style={{ padding: "16px 24px", textAlign: "right", fontWeight: 900, fontSize: 14, color: badgeColor }}>
-                              {isIn ? '+' : (isOut && tx.quantity > 0 ? '-' : '')}{Math.abs(tx.quantity).toString().replace(/\.?0+$/, "")}
+                              {isIn ? '+' : (isOut && tx.quantity > 0 ? '-' : '')}{Math.abs(tx.quantity).toFixed(2)}
                             </td>
-                            <td style={{ padding: "16px 24px", fontSize: 13, color: "var(--text-secondary)", fontWeight: 700 }}>
+                            <td style={{ padding: "16px 24px", fontSize: 13, color: "var(--text-secondary)", fontWeight: 700, maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {tx.note || (tx.type === 'IN' ? 'Nhập hàng' : tx.type === 'OUT' ? 'Xuất hàng' : tx.type === 'USED' ? 'Bán hàng (POS)' : 'Điều chỉnh kho')}
                             </td>
                           </tr>

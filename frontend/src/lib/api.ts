@@ -82,7 +82,7 @@ export const createEmployee = (data: any): Promise<any> => api.post('/employees'
 export const updateEmployee = (id: string, data: any): Promise<any> => api.patch(`/employees/${id}`, data).then((r) => r.data);
 export const deleteEmployee = (id: string): Promise<any> => api.delete(`/employees/${id}`).then((r) => r.data);
 
-export const addItemsToOrder = (id: string, items: any[], paymentMethod?: string): Promise<Order> => api.post(`/orders/${id}/items`, { items, payment_method: paymentMethod }).then((r) => r.data);
+export const addItemsToOrder = (id: string, items: any[], paymentMethod?: string): Promise<Order> => api.post(`/orders/${id}`, { items, payment_method: paymentMethod }).then((r) => r.data);
 export const getDashboardStats = (params?: { branch_id?: string; startDate?: string; endDate?: string }): Promise<DashboardStats> => api.get('/orders/dashboard', { params }).then((r) => r.data);
 export const reprintOrder = (id: string): Promise<Order> => api.post(`/orders/${id}/reprint`).then((r) => r.data);
 
@@ -153,7 +153,7 @@ export const importRecipes = (file: File): Promise<any> => {
 // (Table interface is now imported from types/index.ts)
 
 export const getTables = (branchId?: string): Promise<Table[]> => api.get('/tables', { params: { branch_id: branchId } }).then((r) => r.data);
-export const getAvailableTables = (branchId?: string): Promise<Table[]> => api.get('/tables/available', { params: { branch_id: branchId } }).then((r) => r.data);
+export const getAvailableTables = (branchId?: string): Promise<Table[]> => api.get('/tables', { params: { branch_id: branchId, available: 'true' } }).then((r) => r.data);
 export const createTable = (data: { name: string; branch_id?: string }): Promise<Table> => api.post('/tables', data).then((r) => r.data);
 export const updateTable = (id: string, data: Partial<Table>): Promise<Table> => api.put(`/tables/${id}`, data).then((r) => r.data);
 export const deleteTable = (id: string): Promise<void> => api.delete(`/tables/${id}`).then((r) => r.data);

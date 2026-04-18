@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { getOrders, getBranches, reprintOrder } from "@/lib/api";
+import { getOrders, getBranches, reprintOrder, getOrder } from "@/lib/api";
 import type { Order, PaginatedResponse, Branch } from "@/types";
 import {
    HiClock, HiSearch, HiOutlineReceiptTax, HiDownload,
@@ -40,17 +40,18 @@ export default function OrdersPage() {
    const [isReprinting, setIsReprinting] = useState(false);
 
    // Column visibility
-   const allColumns = [
-      { key: 'order_number', label: 'MÃ ĐƠN HÀNG' },
-      { key: 'branch', label: 'CHI NHÁNH' },
-      { key: 'created_at', label: 'THỜI GIAN' },
-      { key: 'items', label: 'SẢN PHẨM' },
-      { key: 'payment_method', label: 'PHƯƠNG THỨC' },
-      { key: 'order_type', label: 'HÌNH THỨC' },
-      { key: 'discount_amount', label: 'GIẢM GIÁ' },
-      { key: 'final_amount', label: 'THANH TOÁN' },
-      { key: 'status', label: 'TRẠNG THÁI' }
-   ];
+const allColumns = [
+       { key: 'order_number', label: 'MÃ ĐƠN HÀNG' },
+       { key: 'branch', label: 'CHI NHÁNH' },
+       { key: 'created_at', label: 'THỜI GIAN' },
+       { key: 'items', label: 'SẢN PHẨM' },
+       { key: 'payment_method', label: 'PHƯƠNG THỨC' },
+       { key: 'order_type', label: 'HÌNH THỨC' },
+       { key: 'discount_amount', label: 'GIẢM GIÁ' },
+       { key: 'final_amount', label: 'THANH TOÁN' },
+       { key: 'print_count', label: 'LẦN IN' },
+       { key: 'status', label: 'TRẠNG THÁI' }
+    ];
    const [visibleColumns, setVisibleColumns] = useState(allColumns.map(c => c.key));
    const [showColumnPicker, setShowColumnPicker] = useState(false);
 
@@ -63,18 +64,34 @@ export default function OrdersPage() {
          setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
 
          // Trigger print (need to wait for React to render the hidden print div if any, or use manual window writing)
+         // Trigger print using iframe
          setTimeout(() => {
             const printContent = document.getElementById("reprint-content");
             if (!printContent) return;
-            const printWindow = window.open('', '_blank');
-            if (!printWindow) return;
-            printWindow.document.write('<html><head><title>Reprint</title>');
-            printWindow.document.write('<style>@page { size: 80mm auto; margin: 0; } body { margin: 0; padding: 0; font-family: sans-serif; } #reprint-content-inner { width: 80mm; box-sizing: border-box; }</style>');
-            printWindow.document.write('</head><body><div id="reprint-content-inner">');
-            printWindow.document.write(printContent.innerHTML);
-            printWindow.document.write('</div></body></html>');
-            printWindow.document.close();
-            printWindow.print();
+            
+            let iframe = document.getElementById("print-iframe") as HTMLIFrameElement;
+            if (!iframe) {
+               iframe = document.createElement("iframe");
+               iframe.id = "print-iframe";
+               iframe.style.display = "none";
+               document.body.appendChild(iframe);
+            }
+
+            const doc = iframe.contentWindow?.document;
+            if (!doc) return;
+
+            doc.open();
+            doc.write('<html><head><title>Reprint</title>');
+            doc.write('<style>@page { size: 80mm auto; margin: 0; } body { margin: 0; padding: 0; font-family: sans-serif; } #reprint-content-inner { width: 80mm; box-sizing: border-box; } * { font-family: "Courier New", Courier, monospace !important; }</style>');
+            doc.write('</head><body><div id="reprint-content-inner">');
+            doc.write(printContent.innerHTML);
+            doc.write('</div></body></html>');
+            doc.close();
+
+            setTimeout(() => {
+               iframe.contentWindow?.focus();
+               iframe.contentWindow?.print();
+            }, 300);
          }, 500);
       } catch (err) {
          toastError("Không thể in lại hóa đơn.");
@@ -321,16 +338,22 @@ export default function OrdersPage() {
                            ))
                         ) : (
                            orders.map((order, idx) => (
-                              <tr
-                                 key={order.id}
-                                 style={{ borderBottom: "1px solid var(--border-light)", cursor: "pointer", animationDelay: `${idx * 0.05}s` }}
-                                 onClick={() => setSelectedOrder(order)}
-                                 className="animate-fade-in"
+<tr
+                                  key={order.id}
+                                  style={{ borderBottom: "1px solid var(--border-light)", cursor: "pointer", animationDelay: `${idx * 0.05}s` }}
+                                  onClick={async () => {
+                                     const full = await getOrder(order.id);
+                                     setSelectedOrder(full);
+                                  }}
+                                  className="animate-fade-in"
                               >
                                  {visibleColumns.includes('order_number') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontWeight: 800, fontSize: 16, whiteSpace: "nowrap" }}>{order.order_number}</td>}
                                  {visibleColumns.includes('branch') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{(order as any).branch?.name || "Chi nhánh chính"}</td>}
                                  {visibleColumns.includes('created_at') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontSize: 15, color: "var(--text-secondary)", fontWeight: 600, whiteSpace: "nowrap" }}>{formatExactDBTime(order.created_at, "HH:mm • dd/MM/yyyy")}</td>}
-                                 {visibleColumns.includes('items') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontSize: 15, fontWeight: 700 }}>{order.items?.length || 0} món</td>}
+                                 {visibleColumns.includes('items') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontSize: 15, fontWeight: 700 }}>
+                                        <div>{((order as any)._count?.items || 0)} món</div>
+                                        {order.table_id && <div style={{ fontSize: 11, color: "var(--accent)", fontWeight: 900 }}>{((order as any).table?.name)}</div>}
+                                     </td>}
                                  {visibleColumns.includes('payment_method') && (
                                     <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontSize: 14, fontWeight: 800 }}>
                                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -348,8 +371,9 @@ export default function OrdersPage() {
                                     </td>
                                  )}
                                  {visibleColumns.includes('discount_amount') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontSize: 15, fontWeight: 700, color: "var(--danger)" }}>-{formatVND(order.discount_amount)}</td>}
-                                 {visibleColumns.includes('final_amount') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontWeight: 800, fontSize: 17, color: "var(--text-primary)" }}>{formatVND(order.final_amount)}</td>}
-                                 {visibleColumns.includes('status') && (
+{visibleColumns.includes('final_amount') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontWeight: 800, fontSize: 17, color: "var(--text-primary)" }}>{formatVND(order.final_amount)}</td>}
+                                  {visibleColumns.includes('print_count') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontSize: 15, fontWeight: 700, color: "var(--text-muted)" }}>{order.print_count || 1}</td>}
+                                  {visibleColumns.includes('status') && (
                                     <td style={{ padding: isMobile ? "12px 16px" : "20px 24px" }}>
                                        <span className="badge badge-success" style={{ fontSize: 12, whiteSpace: "nowrap" }}>HOÀN TẤT</span>
                                     </td>
@@ -374,10 +398,12 @@ export default function OrdersPage() {
                <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
                   <div style={{ background: "white", borderRadius: 32, width: "100%", maxWidth: 500, overflow: "hidden", display: "flex", flexDirection: "column" }} className="animate-fade-in">
                      <div style={{ padding: "32px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div>
-                           <h3 style={{ fontSize: 18, fontWeight: 900 }}>Chi tiết đơn hàng</h3>
-                           <p style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 700 }}>{selectedOrder.order_number} • {(selectedOrder as any).branch?.name || "Tony Coffee & Tea chi nhánh 1"}</p>
-                        </div>
+<div>
+                            <h3 style={{ fontSize: 18, fontWeight: 900 }}>Chi tiết đơn hàng</h3>
+                            <p style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 700 }}>{selectedOrder.order_number} • {(selectedOrder as any).branch?.name || "Tony Coffee & Tea"}</p>
+                            {selectedOrder.order_type === "DINE_IN" && selectedOrder.table_id && <p style={{ fontSize: 11, color: "var(--accent)", fontWeight: 900, marginTop: 4 }}>BÀN: {selectedOrder.table?.name}</p>}
+                         {selectedOrder.order_type === "TAKEAWAY" && <p style={{ fontSize: 11, color: "var(--accent)", fontWeight: 900, marginTop: 4 }}>MANG ĐI</p>}
+                         </div>
                         <button onClick={() => setSelectedOrder(null)} style={{ width: 40, height: 40, borderRadius: "50%", border: "1px solid var(--border)", background: "white", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                            <HiX size={20} />
                         </button>
@@ -452,7 +478,7 @@ export default function OrdersPage() {
             {/* HIDDEN REPRINT TEMPLATE */}
             {selectedOrder && (
                <div id="reprint-content" style={{ display: "none" }}>
-                  <div style={{ width: "80mm", padding: "10mm 4mm", background: "white", color: "black", fontFamily: "Courier New", fontSize: "12px", lineHeight: "1.4" }}>
+                  <div style={{ width: "80mm", padding: "16px", background: "white", color: "black", fontFamily: "Courier New", fontSize: "12px", lineHeight: "1.4" }}>
                      <div style={{ textAlign: "center", marginBottom: "15px" }}>
                         <h2 style={{ fontSize: "18px", fontWeight: "bold", margin: "0 0 4px" }}>TONY COFFEE & TEA</h2>
                         <p style={{ margin: "2px 0", fontSize: "11px" }}>{(selectedOrder as any).branch?.address || "Address Placeholder"}</p>
@@ -469,10 +495,16 @@ export default function OrdersPage() {
                            <span>Ngày: {format(new Date(selectedOrder.created_at), "dd/MM/yyyy")}</span>
                            <span>Giờ: {format(new Date(selectedOrder.created_at), "HH:mm:ss")}</span>
                         </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "11px" }}>
-                           <span>Thu ngân: {(selectedOrder as any).branch?.name || "Tony Coffee & Tea"}</span>
-                           <span style={{ fontWeight: "bold" }}>Lần in: {selectedOrder.print_count}</span>
-                        </div>
+<div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "11px" }}>
+                            <span>Thu ngân: {(selectedOrder as any).branch?.name || "Tony Coffee & Tea"}</span>
+                            <span style={{ fontWeight: "bold" }}>Lần in: {selectedOrder.print_count || 1}</span>
+                         </div>
+{selectedOrder.order_type === "TAKEAWAY" ? "Mang đi" : (
+                             <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "11px" }}>
+                                <span>Bàn:</span>
+                                <span style={{ fontWeight: "bold" }}>{selectedOrder.table?.name}</span>
+                             </div>
+                          )}
                      </div>
                      <table style={{ width: "100%", borderTop: "1px solid black", borderBottom: "1px solid black", borderCollapse: "collapse", marginTop: "10px" }}>
                         <thead>

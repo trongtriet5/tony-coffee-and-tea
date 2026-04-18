@@ -45,6 +45,7 @@ export async function GET(request: Request) {
         created_at: true,
         print_count: true,
         branch: { select: { id: true, name: true } },
+        table: { select: { id: true, name: true } },
         _count: { select: { items: true } },
       },
     }),
@@ -73,7 +74,8 @@ export async function POST(request: Request) {
     if (orderType === 'DINE_IN') {
       if (!dto.table_id) return NextResponse.json({ message: 'Table ID is required for dine-in orders' }, { status: 400 });
       const table = await prisma.table.findUnique({ where: { id: dto.table_id } });
-      if (!table || table.status !== 'AVAILABLE') return NextResponse.json({ message: 'Table not available' }, { status: 400 });
+      if (!table) return NextResponse.json({ message: 'Table not found' }, { status: 400 });
+      // Allow creating new order even if table is OCCUPIED (for adding more items to existing table)
       tableId = dto.table_id;
     }
 
@@ -147,7 +149,7 @@ export async function POST(request: Request) {
           table_id: tableId,
           items: { create: itemsData },
         },
-        include: { items: true },
+        include: { items: { include: { product: true, variant: true, toppings: true } }, table: true },
       });
 
       const enrichedItems = dto.items.map((item: any) => ({
@@ -157,7 +159,10 @@ export async function POST(request: Request) {
       await deductStockForOrder(order.id, order.order_number, enrichedItems, tx);
 
       if (tableId) {
-        await tx.table.update({ where: { id: tableId }, data: { status: 'OCCUPIED' } });
+        const existingTable = await tx.table.findUnique({ where: { id: tableId } });
+        if (existingTable && existingTable.status !== 'OCCUPIED') {
+          await tx.table.update({ where: { id: tableId }, data: { status: 'OCCUPIED' } });
+        }
       }
 
       return order;
