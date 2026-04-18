@@ -9,6 +9,9 @@
     "vercel-build": "cd frontend && npm run build"
   },
   "dependencies": {
-    "next": "*"
+    "next": "16.2.1"
+  },
+  "devDependencies": {
+    "eslint-config-next": "16.2.1"
   }
 }
