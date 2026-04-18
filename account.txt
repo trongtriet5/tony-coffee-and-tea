@@ -1,0 +1,3 @@
+Admin: admin / 123456
+Manager CN1: manager1 / 123456
+Manager CN2: manager2 / 123456

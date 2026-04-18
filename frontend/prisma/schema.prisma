@@ -1,0 +1,210 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Branch {
+  id         String     @id @default(uuid())
+  name       String     @unique
+  address    String?
+  phone      String?
+  created_at DateTime   @default(now())
+  orders     Order[]
+  employees  Employee[]
+  materials  Material[]
+  tables     Table[]
+
+  @@map("branches")
+}
+
+model Product {
+  id          String           @id @default(uuid())
+  name_vi     String
+  name_en     String
+  category    String
+  available   Boolean          @default(true)
+  created_at  DateTime         @default(now())
+  updated_at  DateTime         @updatedAt
+  order_items OrderItem[]
+  variants    ProductVariant[]
+
+  @@index([category])
+  @@index([available])
+  @@map("products")
+}
+
+model ProductVariant {
+  id          String          @id @default(uuid())
+  product_id  String
+  size        String
+  price       Float
+  order_items OrderItem[]
+  recipes     ProductRecipe[]
+  product     Product         @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@index([product_id])
+  @@map("product_variants")
+}
+
+model Topping {
+  id          String             @id @default(uuid())
+  name        String
+  price       Float
+  available   Boolean            @default(true)
+  order_items OrderItemTopping[]
+  recipes     ToppingRecipe[]
+
+  @@index([available])
+  @@map("toppings")
+}
+
+model Employee {
+  id            String   @id @default(uuid())
+  username      String   @unique
+  password      String
+  name          String
+  position_name String
+  role          String   @default("STAFF")
+  branch_id     String?
+  created_at    DateTime @default(now())
+  branch        Branch?  @relation(fields: [branch_id], references: [id])
+
+  @@index([branch_id])
+  @@map("employees")
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  order_number    String      @unique
+  total_amount    Float
+  discount_amount Float       @default(0)
+  final_amount    Float
+  payment_method  String      @default("CASH")
+  status          String      @default("COMPLETED")
+  order_type      String      @default("TAKEAWAY")
+  source          String      @default("POS")
+  branch_id       String?
+  table_id        String?
+  note            String?
+  created_at      DateTime    @default(now())
+  print_count     Int         @default(1)
+  branch          Branch?     @relation(fields: [branch_id], references: [id])
+  table           Table?      @relation(fields: [table_id], references: [id])
+  items           OrderItem[]
+
+  @@index([branch_id])
+  @@index([table_id])
+  @@index([created_at])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String             @id @default(uuid())
+  order_id   String
+  product_id String
+  variant_id String?
+  quantity   Int
+  unit_price Float
+  subtotal   Float
+  note       String?
+  toppings   OrderItemTopping[]
+  order      Order              @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product    Product            @relation(fields: [product_id], references: [id])
+  variant    ProductVariant?    @relation(fields: [variant_id], references: [id])
+
+  @@index([order_id])
+  @@index([product_id])
+  @@map("order_items")
+}
+
+model OrderItemTopping {
+  id            String    @id @default(uuid())
+  order_item_id String
+  topping_id    String
+  name          String
+  price         Float
+  order_item    OrderItem @relation(fields: [order_item_id], references: [id], onDelete: Cascade)
+  topping       Topping   @relation(fields: [topping_id], references: [id])
+
+  @@index([order_item_id])
+  @@index([topping_id])
+  @@map("order_item_toppings")
+}
+
+model Material {
+  id              String                @id @default(uuid())
+  branch_id       String?
+  name            String
+  unit            String
+  cost_per_unit   Float
+  stock_current   Float                 @default(0)
+  safety_stock    Float?                // Tồn kho an toàn - dựa trên dữ liệu bán hàng
+  transactions    MaterialTransaction[]
+  branch          Branch?               @relation(fields: [branch_id], references: [id])
+  product_recipes ProductRecipe[]
+  topping_recipes ToppingRecipe[]
+
+  @@index([branch_id])
+  @@map("materials")
+}
+
+model MaterialTransaction {
+  id          String   @id @default(uuid())
+  material_id String
+  type        String
+  quantity    Float
+  note        String?
+  created_at  DateTime @default(now())
+  material    Material @relation(fields: [material_id], references: [id], onDelete: Cascade)
+
+  @@index([material_id])
+  @@index([created_at])
+  @@map("material_transactions")
+}
+
+model ProductRecipe {
+  id          String         @id @default(uuid())
+  variant_id  String
+  material_id String
+  quantity    Float
+  material    Material       @relation(fields: [material_id], references: [id])
+  variant     ProductVariant @relation(fields: [variant_id], references: [id], onDelete: Cascade)
+
+  @@unique([variant_id, material_id])
+  @@index([material_id])
+  @@map("product_recipes")
+}
+
+model ToppingRecipe {
+  id          String   @id @default(uuid())
+  topping_id  String
+  material_id String
+  quantity    Float
+  material    Material @relation(fields: [material_id], references: [id])
+  topping     Topping  @relation(fields: [topping_id], references: [id], onDelete: Cascade)
+
+  @@unique([topping_id, material_id])
+  @@index([material_id])
+  @@map("topping_recipes")
+}
+
+model Table {
+  id        String  @id @default(uuid())
+  branch_id String?
+  name      String
+  area      String  @default("Chung")
+  status    String  @default("AVAILABLE")
+  orders    Order[]
+  branch    Branch? @relation(fields: [branch_id], references: [id])
+
+  @@index([branch_id])
+  @@index([status])
+  @@map("tables")
+}
