@@ -208,7 +208,7 @@ export default function ProductsManagementPage() {
                 <form onSubmit={handleCreateOrUpdateProduct}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 24 }}>
                     <div>
-<label style={labelStyle}>Tên món (Tiếng Việt)</label>
+                      <label style={labelStyle}>Tên món (Tiếng Việt)</label>
                       <input required placeholder="VD: Cà phê sữa đá" style={inputStyle} value={productForm.name_vi} onChange={e => setProductForm({ ...productForm, name_vi: e.target.value })} />
                     </div>
                     <div>
@@ -255,7 +255,7 @@ export default function ProductsManagementPage() {
                 <form onSubmit={handleCreateOrUpdateTopping}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 24 }}>
                     <div>
-<label style={labelStyle}>Tên topping</label>
+                      <label style={labelStyle}>Tên topping</label>
                       <input required placeholder="VD: Trân châu" style={inputStyle} value={toppingForm.name} onChange={e => setToppingForm({ ...toppingForm, name: e.target.value })} />
                     </div>
                     <div>
@@ -281,17 +281,17 @@ export default function ProductsManagementPage() {
           {/* RIGHT: LIST SECTION */}
           <div>
             <div style={{ background: "white", borderRadius: 24, border: "1px solid var(--border)", padding: "24px 8px 32px 32px", boxShadow: "0 4px 20px rgba(0,0,0,0.02)", height: "calc(100vh - 160px)", display: "flex", flexDirection: "column" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, paddingRight: 24 }}>
-                  <div>
-                    <h3 style={{ fontSize: 18, fontWeight: 900 }}>Danh sách hiện có</h3>
-                    <p style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 700 }}>Nhấn vào dòng để chỉnh sửa thông tin món hoặc topping.</p>
-                  </div>
-                  <div style={{ display: "flex", gap: 6, padding: 4, background: "var(--bg-primary)", borderRadius: 10 }}>
-                    <button onClick={() => setListFilter('all')} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: listFilter === 'all' ? "white" : "transparent", color: listFilter === 'all' ? "var(--accent)" : "var(--text-muted)", fontSize: 11, fontWeight: 800, cursor: "pointer", transition: "0.2s" }}>TẤT CẢ</button>
-                    <button onClick={() => setListFilter('product')} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: listFilter === 'product' ? "white" : "transparent", color: listFilter === 'product' ? "var(--accent)" : "var(--text-muted)", fontSize: 11, fontWeight: 800, cursor: "pointer", transition: "0.2s" }}>MÓN CHÍNH</button>
-                    <button onClick={() => setListFilter('topping')} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: listFilter === 'topping' ? "white" : "transparent", color: listFilter === 'topping' ? "var(--accent)" : "var(--text-muted)", fontSize: 11, fontWeight: 800, cursor: "pointer", transition: "0.2s" }}>TOPPING</button>
-                  </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, paddingRight: 24 }}>
+                <div>
+                  <h3 style={{ fontSize: 18, fontWeight: 900 }}>Danh sách hiện có</h3>
+                  <p style={{ fontSize: 14, color: "var(--text-secondary)", fontWeight: 700 }}>Nhấn vào dòng để chỉnh sửa thông tin món hoặc topping.</p>
                 </div>
+                <div style={{ display: "flex", gap: 6, padding: 4, background: "var(--bg-primary)", borderRadius: 10 }}>
+                  <button onClick={() => setListFilter('all')} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: listFilter === 'all' ? "white" : "transparent", color: listFilter === 'all' ? "var(--accent)" : "var(--text-muted)", fontSize: 14, fontWeight: 800, cursor: "pointer", transition: "0.2s" }}>TẤT CẢ</button>
+                  <button onClick={() => setListFilter('product')} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: listFilter === 'product' ? "white" : "transparent", color: listFilter === 'product' ? "var(--accent)" : "var(--text-muted)", fontSize: 14, fontWeight: 800, cursor: "pointer", transition: "0.2s" }}>MÓN CHÍNH</button>
+                  <button onClick={() => setListFilter('topping')} style={{ padding: "6px 12px", borderRadius: 8, border: "none", background: listFilter === 'topping' ? "white" : "transparent", color: listFilter === 'topping' ? "var(--accent)" : "var(--text-muted)", fontSize: 14, fontWeight: 800, cursor: "pointer", transition: "0.2s" }}>TOPPING</button>
+                </div>
+              </div>
 
               {fetchLoading ? (
                 <div style={{ flex: 1, overflowY: "auto", paddingRight: 16 }}>
@@ -316,21 +316,21 @@ export default function ProductsManagementPage() {
                       <h4 style={{ fontSize: 12, fontWeight: 900, color: "var(--text-muted)", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}><HiCollection size={16} /> SẢN PHẨM CHÍNH ({products.length})</h4>
                       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                         {products.map((p, idx) => (
-                          <div 
-                            key={p.id} 
-                            onClick={() => startEditProduct(p)} 
-                            style={{ 
-                              padding: "16px 20px", 
-                              borderRadius: 16, 
-                              background: "var(--bg-primary)", 
-                              border: editingProductId === p.id ? "2px solid var(--accent)" : "2px solid transparent", 
-                              cursor: "pointer", 
-                              display: "flex", 
-                              justifyContent: "space-between", 
-                              alignItems: "center", 
+                          <div
+                            key={p.id}
+                            onClick={() => startEditProduct(p)}
+                            style={{
+                              padding: "16px 20px",
+                              borderRadius: 16,
+                              background: "var(--bg-primary)",
+                              border: editingProductId === p.id ? "2px solid var(--accent)" : "2px solid transparent",
+                              cursor: "pointer",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
                               transition: "0.2s",
                               animationDelay: `${idx * 0.05}s`
-                            }} 
+                            }}
                             className="list-item animate-fade-in"
                           >
                             <div>
@@ -363,21 +363,21 @@ export default function ProductsManagementPage() {
                       <h4 style={{ fontSize: 12, fontWeight: 900, color: "var(--text-muted)", marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}><HiSparkles size={16} /> TOPPING ({toppings.length})</h4>
                       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                         {toppings.map((t, idx) => (
-                          <div 
-                            key={t.id} 
-                            onClick={() => startEditTopping(t)} 
-                            style={{ 
-                              padding: "16px 20px", 
-                              borderRadius: 16, 
-                              background: "var(--bg-primary)", 
-                              border: editingToppingId === t.id ? "2px solid var(--accent)" : "2px solid transparent", 
-                              cursor: "pointer", 
-                              display: "flex", 
-                              justifyContent: "space-between", 
-                              alignItems: "center", 
+                          <div
+                            key={t.id}
+                            onClick={() => startEditTopping(t)}
+                            style={{
+                              padding: "16px 20px",
+                              borderRadius: 16,
+                              background: "var(--bg-primary)",
+                              border: editingToppingId === t.id ? "2px solid var(--accent)" : "2px solid transparent",
+                              cursor: "pointer",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
                               transition: "0.2s",
                               animationDelay: `${(products.length + idx) * 0.05}s`
-                            }} 
+                            }}
                             className="list-item animate-fade-in"
                           >
                             <div>

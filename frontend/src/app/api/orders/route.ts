@@ -142,7 +142,7 @@ export async function POST(request: Request) {
           discount_amount: discountAmountVal,
           final_amount: finalAmountVal,
           payment_method: dto.payment_method,
-          status: orderType === 'DINE_IN' ? 'PENDING' : 'COMPLETED',
+          status: 'COMPLETED',
           order_type: orderType,
           source: source,
           branch_id: dto.branch_id,

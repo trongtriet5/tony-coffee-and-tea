@@ -39,19 +39,17 @@ export default function OrdersPage() {
    const [totalPages, setTotalPages] = useState(0);
    const [isReprinting, setIsReprinting] = useState(false);
 
-   // Column visibility
-const allColumns = [
-       { key: 'order_number', label: 'MÃ ĐƠN HÀNG' },
-       { key: 'branch', label: 'CHI NHÁNH' },
-       { key: 'created_at', label: 'THỜI GIAN' },
-       { key: 'items', label: 'SẢN PHẨM' },
-       { key: 'payment_method', label: 'PHƯƠNG THỨC' },
-       { key: 'order_type', label: 'HÌNH THỨC' },
-       { key: 'discount_amount', label: 'GIẢM GIÁ' },
-       { key: 'final_amount', label: 'THANH TOÁN' },
-       { key: 'print_count', label: 'LẦN IN' },
-       { key: 'status', label: 'TRẠNG THÁI' }
-    ];
+   // Column visibility — 'items' and 'print_count' removed per user request
+   const allColumns = [
+      { key: 'order_number', label: 'MÃ ĐƠN HÀNG' },
+      { key: 'branch', label: 'CHI NHÁNH' },
+      { key: 'created_at', label: 'THỜI GIAN' },
+      { key: 'payment_method', label: 'PHƯƠNG THỨC' },
+      { key: 'order_type', label: 'HÌNH THỨC' },
+      { key: 'discount_amount', label: 'GIẢM GIÁ' },
+      { key: 'final_amount', label: 'THANH TOÁN' },
+      { key: 'status', label: 'TRẠNG THÁI' }
+   ];
    const [visibleColumns, setVisibleColumns] = useState(allColumns.map(c => c.key));
    const [showColumnPicker, setShowColumnPicker] = useState(false);
 
@@ -59,16 +57,12 @@ const allColumns = [
       try {
          const updatedOrder = await reprintOrder(order.id);
          setSelectedOrder(updatedOrder);
-
-         // Update in list
          setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
 
-         // Trigger print (need to wait for React to render the hidden print div if any, or use manual window writing)
-         // Trigger print using iframe
          setTimeout(() => {
             const printContent = document.getElementById("reprint-content");
             if (!printContent) return;
-            
+
             let iframe = document.getElementById("print-iframe") as HTMLIFrameElement;
             if (!iframe) {
                iframe = document.createElement("iframe");
@@ -102,16 +96,12 @@ const allColumns = [
       const checkMobile = () => setIsMobile(window.innerWidth < 1024);
       checkMobile();
       window.addEventListener("resize", checkMobile);
-
-      // Fetch branches for admin if user is loaded
       if (currentUser?.role === 'ADMIN') {
          getBranches().then(setBranches);
       }
-
       return () => window.removeEventListener("resize", checkMobile);
    }, [currentUser]);
 
-   // Debounced search to optimize API calls
    const [debouncedSearch, setDebouncedSearch] = useState(search);
 
    useEffect(() => {
@@ -121,7 +111,6 @@ const allColumns = [
       return () => clearTimeout(timer);
    }, [search]);
 
-   // UseEffect for dynamic search and pagination
    useEffect(() => {
       if (currentUser) fetchData();
    }, [debouncedSearch, page, limit, currentUser, selectedBranchId]);
@@ -145,7 +134,7 @@ const allColumns = [
 
    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearch(e.target.value);
-      setPage(1); // Reset to first page on new search
+      setPage(1);
    };
 
    const handlePageChange = (newPage: number) => {
@@ -228,7 +217,6 @@ const allColumns = [
                   <button onClick={handleExportExcel} style={{ flex: isMobile ? "1 1 auto" : "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: isMobile ? "12px 16px" : "14px 24px", borderRadius: 14, background: "white", border: "1px solid var(--border)", color: "var(--text-primary)", fontWeight: 800, cursor: "pointer", fontSize: 14 }}>
                      <HiDownload size={20} /> <span style={{ whiteSpace: "nowrap" }}>{isMobile ? "XUẤT" : "XUẤT EXCEL"}</span>
                   </button>
-
 
                   <div style={{ position: "relative", flex: isMobile ? "1 1 auto" : "none" }}>
                      <button onClick={() => setShowColumnPicker(!showColumnPicker)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: isMobile ? "12px 16px" : "14px 24px", borderRadius: 14, background: "white", border: "1px solid var(--border)", color: "var(--text-primary)", fontWeight: 800, cursor: "pointer", fontSize: 14 }}>
@@ -338,22 +326,18 @@ const allColumns = [
                            ))
                         ) : (
                            orders.map((order, idx) => (
-<tr
-                                  key={order.id}
-                                  style={{ borderBottom: "1px solid var(--border-light)", cursor: "pointer", animationDelay: `${idx * 0.05}s` }}
-                                  onClick={async () => {
-                                     const full = await getOrder(order.id);
-                                     setSelectedOrder(full);
-                                  }}
-                                  className="animate-fade-in"
+                              <tr
+                                 key={order.id}
+                                 style={{ borderBottom: "1px solid var(--border-light)", cursor: "pointer", animationDelay: `${idx * 0.05}s` }}
+                                 onClick={async () => {
+                                    const full = await getOrder(order.id);
+                                    setSelectedOrder(full);
+                                 }}
+                                 className="animate-fade-in"
                               >
                                  {visibleColumns.includes('order_number') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontWeight: 800, fontSize: 16, whiteSpace: "nowrap" }}>{order.order_number}</td>}
                                  {visibleColumns.includes('branch') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{(order as any).branch?.name || "Chi nhánh chính"}</td>}
                                  {visibleColumns.includes('created_at') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontSize: 15, color: "var(--text-secondary)", fontWeight: 600, whiteSpace: "nowrap" }}>{formatExactDBTime(order.created_at, "HH:mm • dd/MM/yyyy")}</td>}
-                                 {visibleColumns.includes('items') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontSize: 15, fontWeight: 700 }}>
-                                        <div>{((order as any)._count?.items || 0)} món</div>
-                                        {order.table_id && <div style={{ fontSize: 11, color: "var(--accent)", fontWeight: 900 }}>{((order as any).table?.name)}</div>}
-                                     </td>}
                                  {visibleColumns.includes('payment_method') && (
                                     <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontSize: 14, fontWeight: 800 }}>
                                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -371,9 +355,8 @@ const allColumns = [
                                     </td>
                                  )}
                                  {visibleColumns.includes('discount_amount') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontSize: 15, fontWeight: 700, color: "var(--danger)" }}>-{formatVND(order.discount_amount)}</td>}
-{visibleColumns.includes('final_amount') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontWeight: 800, fontSize: 17, color: "var(--text-primary)" }}>{formatVND(order.final_amount)}</td>}
-                                  {visibleColumns.includes('print_count') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontSize: 15, fontWeight: 700, color: "var(--text-muted)" }}>{order.print_count || 1}</td>}
-                                  {visibleColumns.includes('status') && (
+                                 {visibleColumns.includes('final_amount') && <td style={{ padding: isMobile ? "12px 16px" : "20px 24px", fontWeight: 800, fontSize: 17, color: "var(--text-primary)" }}>{formatVND(order.final_amount)}</td>}
+                                 {visibleColumns.includes('status') && (
                                     <td style={{ padding: isMobile ? "12px 16px" : "20px 24px" }}>
                                        <span className="badge badge-success" style={{ fontSize: 12, whiteSpace: "nowrap" }}>HOÀN TẤT</span>
                                     </td>
@@ -398,12 +381,12 @@ const allColumns = [
                <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
                   <div style={{ background: "white", borderRadius: 32, width: "100%", maxWidth: 500, overflow: "hidden", display: "flex", flexDirection: "column" }} className="animate-fade-in">
                      <div style={{ padding: "32px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-<div>
-                            <h3 style={{ fontSize: 18, fontWeight: 900 }}>Chi tiết đơn hàng</h3>
-                            <p style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 700 }}>{selectedOrder.order_number} • {(selectedOrder as any).branch?.name || "Tony Coffee & Tea"}</p>
-                            {selectedOrder.order_type === "DINE_IN" && selectedOrder.table_id && <p style={{ fontSize: 11, color: "var(--accent)", fontWeight: 900, marginTop: 4 }}>BÀN: {selectedOrder.table?.name}</p>}
-                         {selectedOrder.order_type === "TAKEAWAY" && <p style={{ fontSize: 11, color: "var(--accent)", fontWeight: 900, marginTop: 4 }}>MANG ĐI</p>}
-                         </div>
+                        <div>
+                           <h3 style={{ fontSize: 18, fontWeight: 900 }}>Chi tiết đơn hàng</h3>
+                           <p style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 700 }}>{selectedOrder.order_number} • {(selectedOrder as any).branch?.name || "Tony Coffee & Tea"}</p>
+                           {selectedOrder.order_type === "DINE_IN" && selectedOrder.table_id && <p style={{ fontSize: 11, color: "var(--accent)", fontWeight: 900, marginTop: 4 }}>BÀN: {selectedOrder.table?.name}</p>}
+                           {selectedOrder.order_type === "TAKEAWAY" && <p style={{ fontSize: 11, color: "var(--accent)", fontWeight: 900, marginTop: 4 }}>MANG ĐI</p>}
+                        </div>
                         <button onClick={() => setSelectedOrder(null)} style={{ width: 40, height: 40, borderRadius: "50%", border: "1px solid var(--border)", background: "white", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                            <HiX size={20} />
                         </button>
@@ -419,7 +402,7 @@ const allColumns = [
                                        <div style={{ display: "flex", gap: 12 }}>
                                           <span style={{ fontWeight: 900, fontSize: 14, color: "var(--accent)" }}>{item.quantity}x</span>
                                           <div>
-                                             <p style={{ fontWeight: 800, fontSize: 14 }}>{(item as any).product?.name_vi || "Món hỉ"}</p>
+                                             <p style={{ fontWeight: 800, fontSize: 14 }}>{(item as any).product?.name_vi || "Món"}</p>
                                              {item.toppings && item.toppings.length > 0 && (
                                                 <p style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600 }}>
                                                    + {item.toppings.map(t => t.name).join(", ")}
@@ -495,16 +478,15 @@ const allColumns = [
                            <span>Ngày: {format(new Date(selectedOrder.created_at), "dd/MM/yyyy")}</span>
                            <span>Giờ: {format(new Date(selectedOrder.created_at), "HH:mm:ss")}</span>
                         </div>
-<div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "11px" }}>
-                            <span>Thu ngân: {(selectedOrder as any).branch?.name || "Tony Coffee & Tea"}</span>
-                            <span style={{ fontWeight: "bold" }}>Lần in: {selectedOrder.print_count || 1}</span>
-                         </div>
-{selectedOrder.order_type === "TAKEAWAY" ? "Mang đi" : (
-                             <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "11px" }}>
-                                <span>Bàn:</span>
-                                <span style={{ fontWeight: "bold" }}>{selectedOrder.table?.name}</span>
-                             </div>
-                          )}
+                        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "11px" }}>
+                           <span>Thu ngân: {(selectedOrder as any).branch?.name || "Tony Coffee & Tea"}</span>
+                        </div>
+                        {selectedOrder.order_type === "TAKEAWAY" ? "Mang đi" : (
+                           <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "11px" }}>
+                              <span>Bàn:</span>
+                              <span style={{ fontWeight: "bold" }}>{selectedOrder.table?.name}</span>
+                           </div>
+                        )}
                      </div>
                      <table style={{ width: "100%", borderTop: "1px solid black", borderBottom: "1px solid black", borderCollapse: "collapse", marginTop: "10px" }}>
                         <thead>

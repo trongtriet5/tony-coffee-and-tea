@@ -443,7 +443,7 @@ export default function TablesManagementPage() {
                             <div style={{ marginBottom: 24 }}>
                               <p style={{ fontSize: 11, fontWeight: 900, color: "var(--text-muted)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><HiOutlineShoppingCart size={16} /> CHI TIẾT MÓN</p>
                               <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: "30vh", overflowY: "auto", paddingRight: 8 }} className="custom-scroll">
-                                {selectedOrder.items?.map(item => (
+                                {selectedOrder.items?.map((item: any) => (
                                   <div key={item.id} style={{ background: "var(--bg-primary)", padding: 12, borderRadius: 12 }}>
                                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                                       <p style={{ fontSize: 13, fontWeight: 800 }}>{item.quantity} x {item.product?.name_vi || 'Món'}</p>

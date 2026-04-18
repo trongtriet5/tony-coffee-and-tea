@@ -132,6 +132,7 @@ export default function RecipePage() {
       }
       setRecipeForm({ material_id: "", quantity: "" });
       toastSuccess("Thêm công thức thành công!");
+      fetchData(); // Refresh list để cập nhật trạng thái "Có công thức"
     } catch (error) {
       toastError("Có lỗi xảy ra khi thêm công thức");
     } finally { setLoading(false); }
@@ -201,7 +202,7 @@ export default function RecipePage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
           <div>
             <h1 style={{ fontSize: 32, fontWeight: 900, marginBottom: 8 }}>Quản lý công thức pha chế</h1>
-            <p style={{ color: "var(--text-secondary)", fontSize: 13, fontWeight: 700 }}>Quản lý công thức và định lượng nguyên liệu cho sản phẩm & topping</p>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14, fontWeight: 700 }}>Quản lý công thức và định lượng nguyên liệu cho sản phẩm & topping</p>
           </div>
           <div style={{ display: "flex", gap: 12 }}>
             {currentUser?.role?.toUpperCase() === 'ADMIN' && (
@@ -241,9 +242,9 @@ export default function RecipePage() {
             {/* Recipe Filter */}
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: "flex", gap: 6, padding: 4, background: "var(--bg-primary)", borderRadius: 12 }}>
-                <button onClick={() => setRecipeFilter('all')} style={{ flex: 1, padding: "8px 4px", borderRadius: 8, border: "none", background: recipeFilter === 'all' ? "white" : "transparent", color: recipeFilter === 'all' ? "var(--text-primary)" : "var(--text-muted)", fontSize: 10, fontWeight: 800, cursor: "pointer", transition: "0.2s", boxShadow: recipeFilter === 'all' ? "var(--shadow-sm)" : "none", whiteSpace: "nowrap" }}>TẤT CẢ</button>
-                <button onClick={() => setRecipeFilter('has')} style={{ flex: 1, padding: "8px 4px", borderRadius: 8, border: "none", background: recipeFilter === 'has' ? "white" : "transparent", color: recipeFilter === 'has' ? "var(--text-primary)" : "var(--text-muted)", fontSize: 10, fontWeight: 800, cursor: "pointer", transition: "0.2s", boxShadow: recipeFilter === 'has' ? "var(--shadow-sm)" : "none", whiteSpace: "nowrap" }}>CÓ CÔNG THỨC</button>
-                <button onClick={() => setRecipeFilter('no')} style={{ flex: 1, padding: "8px 4px", borderRadius: 8, border: "none", background: recipeFilter === 'no' ? "white" : "transparent", color: recipeFilter === 'no' ? "var(--text-primary)" : "var(--text-muted)", fontSize: 10, fontWeight: 800, cursor: "pointer", transition: "0.2s", boxShadow: recipeFilter === 'no' ? "var(--shadow-sm)" : "none", whiteSpace: "nowrap" }}>CHƯA CÓ CÔNG THỨC</button>
+                <button onClick={() => setRecipeFilter('all')} style={{ flex: 1, padding: "8px 4px", borderRadius: 8, border: "none", background: recipeFilter === 'all' ? "white" : "transparent", color: recipeFilter === 'all' ? "var(--text-primary)" : "var(--text-muted)", fontSize: 12, fontWeight: 800, cursor: "pointer", transition: "0.2s", boxShadow: recipeFilter === 'all' ? "var(--shadow-sm)" : "none", whiteSpace: "nowrap" }}>TẤT CẢ</button>
+                <button onClick={() => setRecipeFilter('has')} style={{ flex: 1, padding: "8px 4px", borderRadius: 8, border: "none", background: recipeFilter === 'has' ? "white" : "transparent", color: recipeFilter === 'has' ? "var(--text-primary)" : "var(--text-muted)", fontSize: 12, fontWeight: 800, cursor: "pointer", transition: "0.2s", boxShadow: recipeFilter === 'has' ? "var(--shadow-sm)" : "none", whiteSpace: "nowrap" }}>CÓ CÔNG THỨC</button>
+                <button onClick={() => setRecipeFilter('no')} style={{ flex: 1, padding: "8px 4px", borderRadius: 8, border: "none", background: recipeFilter === 'no' ? "white" : "transparent", color: recipeFilter === 'no' ? "var(--text-primary)" : "var(--text-muted)", fontSize: 12, fontWeight: 800, cursor: "pointer", transition: "0.2s", boxShadow: recipeFilter === 'no' ? "var(--shadow-sm)" : "none", whiteSpace: "nowrap" }}>CHƯA CÓ CÔNG THỨC</button>
               </div>
             </div>
 
@@ -277,7 +278,7 @@ export default function RecipePage() {
 
                         return (
                           <div key={cat} style={{ marginBottom: 16 }}>
-                            <div style={{ fontSize: 11, fontWeight: 900, color: "var(--accent)", marginBottom: 10, paddingLeft: 8, letterSpacing: 1.5 }}>{cat.toUpperCase()}</div>
+                            <div style={{ fontSize: 12, fontWeight: 900, color: "var(--accent)", marginBottom: 10, paddingLeft: 8, letterSpacing: 1.5 }}>{cat.toUpperCase()}</div>
                             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                               {itemsInCat.map(item => (
                                 <button
@@ -364,7 +365,7 @@ export default function RecipePage() {
                 <div style={{ flex: 1, overflowY: "auto", paddingRight: 12, marginBottom: 24, minHeight: 0 }} className="custom-scroll">
                   {recipeLoading ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                      {[1,2,3,4,5].map(i => (
+                      {[1, 2, 3, 4, 5].map(i => (
                         <div key={i} style={{ padding: "16px 20px", borderRadius: 16, background: "var(--bg-primary)" }}>
                           <div style={{ height: 14, width: "60%", background: "var(--border)", borderRadius: 4, marginBottom: 8, opacity: 0.5 }}></div>
                           <div style={{ height: 10, width: "30%", background: "var(--border)", borderRadius: 4, opacity: 0.3 }}></div>
@@ -408,10 +409,10 @@ export default function RecipePage() {
                         {activeTab === "product" && (
                           <div>
                             <label style={labelStyle}>SIZE</label>
-                            <select 
-                              style={{ ...inputStyle, padding: "10px 12px" }} 
-                              value={selectedVariantId} 
-                              onChange={e => setSelectedVariantId(e.target.value)} 
+                            <select
+                              style={{ ...inputStyle, padding: "10px 12px" }}
+                              value={selectedVariantId}
+                              onChange={e => setSelectedVariantId(e.target.value)}
                               required
                             >
                               <option value="">-- Chọn Size --</option>
@@ -423,10 +424,10 @@ export default function RecipePage() {
                         )}
                         <div>
                           <label style={labelStyle}>NGUYÊN LIỆU</label>
-                          <select 
-                            style={{ ...inputStyle, padding: "10px 12px" }} 
-                            value={recipeForm.material_id} 
-                            onChange={e => setRecipeForm({ ...recipeForm, material_id: e.target.value })} 
+                          <select
+                            style={{ ...inputStyle, padding: "10px 12px" }}
+                            value={recipeForm.material_id}
+                            onChange={e => setRecipeForm({ ...recipeForm, material_id: e.target.value })}
                             required
                           >
                             <option value="">-- Chọn --</option>
@@ -435,14 +436,14 @@ export default function RecipePage() {
                         </div>
                         <div>
                           <label style={labelStyle}>ĐỊNH LƯỢNG</label>
-                          <input 
-                            type="number" 
-                            step="0.001" 
-                            placeholder="Số lượng..." 
-                            style={{ ...inputStyle, padding: "10px 12px" }} 
-                            value={recipeForm.quantity} 
-                            onChange={e => setRecipeForm({ ...recipeForm, quantity: e.target.value })} 
-                            required 
+                          <input
+                            type="number"
+                            step="0.001"
+                            placeholder="Số lượng..."
+                            style={{ ...inputStyle, padding: "10px 12px" }}
+                            value={recipeForm.quantity}
+                            onChange={e => setRecipeForm({ ...recipeForm, quantity: e.target.value })}
+                            required
                           />
                         </div>
                       </div>

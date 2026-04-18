@@ -174,21 +174,21 @@ export default function DashboardPage() {
           ) : (
             [
               {
-                label: "DOANH THU (PERIOD)",
+                label: "DOANH THU (GROSS SALE)",
                 value: formatVND(stats?.total_revenue || 0),
                 icon: HiCurrencyDollar,
                 color: "var(--accent)",
                 trend: stats?.comparison?.revenue_change_percent
               },
               {
-                label: "ĐƠN HÀNG (SỐ LƯỢNG)",
+                label: "ĐƠN HÀNG (ORDER)",
                 value: stats?.total_orders || 0,
                 icon: HiShoppingCart,
                 color: "var(--accent)",
                 trend: stats?.comparison?.orders_change_percent
               },
-              { label: "KHUYẾN MÃI (CHẾ KHẤU)", value: formatVND(stats?.total_discount || 0), icon: HiTicket, color: "var(--danger)" },
-              { label: "DOANH THU NET", value: formatVND(stats?.total_net_revenue || 0), icon: HiTrendingUp, color: "var(--success)", trend: stats?.comparison?.revenue_change_percent },
+              { label: "CHIẾT KHẤU (DISCOUNT)", value: formatVND(stats?.total_discount || 0), icon: HiTicket, color: "var(--danger)" },
+              { label: "DOANH THU NET (NET SALE)", value: formatVND(stats?.total_net_revenue || 0), icon: HiTrendingUp, color: "var(--success)", trend: stats?.comparison?.revenue_change_percent },
             ].map((c, i) => (
               <div key={i} style={{ background: "white", border: "1px solid var(--border)", borderRadius: 24, padding: "32px", boxShadow: "0 4px 12px rgba(0,0,0,0.02)" }} className="animate-fade-in">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -196,16 +196,23 @@ export default function DashboardPage() {
                     <c.icon size={22} color={c.color || "var(--accent)"} />
                   </div>
                   {c.trend !== undefined && (
-                    <div style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: c.trend >= 0 ? "var(--success)" : "var(--danger)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4
-                    }}>
-                      {c.trend >= 0 ? "+" : ""}{c.trend.toFixed(1)}%
-                      <HiTrendingUp style={{ transform: c.trend >= 0 ? "none" : "rotate(90deg)" }} />
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                      <div style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: c.trend >= 0 ? "var(--success)" : "var(--danger)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4
+                      }}>
+                        {c.trend >= 0 ? "+" : ""}{c.trend.toFixed(1)}%
+                        <HiTrendingUp style={{ transform: c.trend >= 0 ? "none" : "rotate(90deg)" }} />
+                      </div>
+                      {stats?.comparison?.period_start && (
+                        <div style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 700, whiteSpace: "nowrap" }}>
+                          So với {stats.comparison.period_start} – {stats.comparison.period_end}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -230,7 +237,7 @@ export default function DashboardPage() {
             <div style={{ position: "relative", height: 380, width: "100%" }}>
               {loading && !stats ? (
                 <div className="skeleton" style={{ height: "100%", width: "100%", borderRadius: 16 }} />
-              ) : ( stats && (
+              ) : (stats && (
                 <Line
                   data={{
                     labels: stats.revenue_by_day.map(d => format(new Date(d.date), "dd/MM/yyyy")),
@@ -251,7 +258,7 @@ export default function DashboardPage() {
                       pointBackgroundColor: '#fff',
                       pointBorderColor: '#346739',
                       pointHoverRadius: 6,
-                      tension: 0.4
+                      tension: 0.5
                     }]
                   }}
                   options={{
@@ -282,9 +289,9 @@ export default function DashboardPage() {
                       x: {
                         border: { display: false },
                         grid: { display: false },
-                        ticks: { 
-                          maxTicksLimit: stats.revenue_by_day.length > 60 ? 12 : stats.revenue_by_day.length > 30 ? 15 : stats.revenue_by_day.length > 14 ? 20 : undefined, 
-                          font: { family: 'inherit', size: 11, weight: 800 }, 
+                        ticks: {
+                          maxTicksLimit: stats.revenue_by_day.length > 60 ? 12 : stats.revenue_by_day.length > 30 ? 15 : stats.revenue_by_day.length > 14 ? 20 : undefined,
+                          font: { family: 'inherit', size: 11, weight: 800 },
                           color: 'var(--text-muted)',
                           maxRotation: stats.revenue_by_day.length > 30 ? 45 : 0
                         }
@@ -309,11 +316,11 @@ export default function DashboardPage() {
                   <div key={i} className="skeleton" style={{ height: 40, width: "100%", borderRadius: 12 }} />
                 ))
               ) : (stats && stats.top_products.map((p, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 20 }} className="animate-fade-in">
-                  <div style={{ width: 160, fontSize: 13, fontWeight: 800, color: "var(--text-primary)", textAlign: "left", lineHeight: 1.2 }}>
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }} className="animate-fade-in">
+                  <div style={{ minWidth: 90, maxWidth: 120, fontSize: 13, fontWeight: 800, color: "var(--text-primary)", textAlign: "right", lineHeight: 1.2, flexShrink: 0 }}>
                     {p.name}
                   </div>
-                  <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 16 }}>
+                  <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12 }}>
                     <div
                       style={{
                         height: 38,
@@ -338,10 +345,29 @@ export default function DashboardPage() {
         </div>
 
         {/* TRANSACTION COUNT ANALYZE (HOURLY) */}
-        <div style={{ marginTop: 32, background: "white", border: "1px solid var(--border)", borderRadius: 32, padding: "48px" }}>
-          <div style={{ marginBottom: 40 }}>
-            <h3 style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>Sản phẩm bán ra</h3>
-            <p style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 700 }}>Tổng hợp lưu lượng bán ra (sản phẩm và topping) theo khung giờ</p>
+        <div style={{ marginTop: 32, background: "white", border: "1px solid var(--border)", borderRadius: 32, padding: "32px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+            <div>
+              <h3 style={{ fontSize: 22, fontWeight: 900, marginBottom: 4 }}>Sản phẩm bán ra</h3>
+              <p style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 700 }}>Tổng hợp lưu lượng bán ra (sản phẩm và topping) theo khung giờ</p>
+            </div>
+            {/* Custom HTML Legend */}
+            {stats && (
+              <div style={{ display: "flex", gap: 20, alignItems: "center", flexShrink: 0 }}>
+                {stats.transaction_count_by_hour.some(h => h.products > 0) && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#346739", flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-primary)" }}>Sản phẩm</span>
+                  </div>
+                )}
+                {stats.transaction_count_by_hour.some(h => h.toppings > 0) && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#9CA3AF", flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-primary)" }}>Topping</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div style={{ height: 320, width: "100%" }}>
@@ -349,72 +375,72 @@ export default function DashboardPage() {
               <div className="skeleton" style={{ height: "100%", width: "100%", borderRadius: 16 }} />
             ) : stats && (
               <Bar
-                data={{
-                  labels: stats.transaction_count_by_hour.map(h => h.hour),
+                data={({
+                  labels: stats.transaction_count_by_hour.map((h: any) => h.hour),
                   datasets: [
                     {
+                      type: 'line',
                       label: 'Sản phẩm',
-                      data: stats.transaction_count_by_hour.map(h => h.products),
-                      backgroundColor: (context: any) => {
-                        const ctx = context.chart.ctx;
-                        const gradient = ctx.createLinearGradient(0, 0, 0, 320);
-                        gradient.addColorStop(0, '#79AE6F');
-                        gradient.addColorStop(1, '#346739');
-                        return gradient;
-                      },
-                      borderRadius: 6,
-                      barPercentage: 0.7,
-                      categoryPercentage: 0.5
+                      data: stats.transaction_count_by_hour.map((h: any) => h.products),
+                      borderColor: '#346739',
+                      backgroundColor: 'rgba(52, 103, 57, 0.25)',
+                      fill: true,
+                      borderWidth: 2,
+                      pointRadius: 5,
+                      pointBackgroundColor: '#346739',
+                      pointBorderColor: '#fff',
+                      pointBorderWidth: 2,
+                      tension: 0.5,
+                      order: 0,
                     },
                     {
-                      label: 'Topping',
-                      data: stats.transaction_count_by_hour.map(h => h.toppings),
-                      backgroundColor: '#e5e7eb',
+                      type: 'bar',
+                      label: 'Sản phẩm',
+                      data: stats.transaction_count_by_hour.map((h: any) => h.products),
+                      backgroundColor: '#346739',
                       borderRadius: 6,
-                      barPercentage: 0.7,
-                      categoryPercentage: 0.5
-                    }
+                      barPercentage: 0.6,
+                      categoryPercentage: 0.4,
+                      order: 1,
+                    },
+                    ...(stats.transaction_count_by_hour.some((h: any) => h.toppings > 0) ? [
+                      {
+                        type: 'line',
+                        label: 'Topping',
+                        data: stats.transaction_count_by_hour.map((h: any) => h.toppings),
+                        borderColor: '#9CA3AF',
+                        backgroundColor: 'rgba(156, 163, 175, 0.2)',
+                        fill: true,
+                        borderWidth: 2,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#9CA3AF',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        tension: 0.5,
+                        order: 0,
+                      },
+                      {
+                        type: 'bar',
+                        label: 'Topping',
+                        data: stats.transaction_count_by_hour.map((h: any) => h.toppings),
+                        backgroundColor: '#e5e7eb',
+                        borderRadius: 6,
+                        barPercentage: 0.6,
+                        categoryPercentage: 0.4,
+                        order: 1,
+                      }
+                    ] : []),
                   ]
-                }}
+                }) as any}
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
-                  layout: { padding: { left: 40, right: 30, top: 40, bottom: 10 } },
                   plugins: {
-                    legend: {
-                      display: true,
-                      position: 'top',
-                      align: 'center',
-                      labels: {
-                        font: { family: 'inherit', size: 11, weight: 800 },
-                        color: 'var(--text-primary)',
-                        usePointStyle: true,
-                        padding: 24
-                      }
-                    },
-                    datalabels: {
-                      color: (ctx: any) => ctx.datasetIndex === 0 ? '#346739' : '#888',
-                      anchor: 'end',
-                      align: 'top',
-                      font: { weight: 900, size: 10 },
-                      formatter: (v: any) => v > 0 ? v : '',
-                      display: 'auto',
-                      offset: 4
-                    },
-                    tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', padding: 12, callbacks: { label: (c: any) => `${c.raw} ${c.datasetIndex === 0 ? 'món' : 'topping'}` } }
+                    legend: { display: false },
                   },
                   scales: {
-                    y: {
-                      beginAtZero: true,
-                      border: { display: false },
-                      grid: { color: 'rgba(0, 0, 0, 0.04)' },
-                      ticks: { font: { family: 'inherit', size: 11, weight: 800 }, color: 'var(--text-muted)', padding: 12 }
-                    },
-                    x: {
-                      border: { display: false },
-                      grid: { display: false },
-                      ticks: { font: { family: 'inherit', size: 10, weight: 800 }, color: 'var(--text-muted)', padding: 8 }
-                    }
+                    y: { beginAtZero: true },
+                    x: { display: true }
                   }
                 }}
               />

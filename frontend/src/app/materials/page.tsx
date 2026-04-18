@@ -16,19 +16,19 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 export default function MaterialsPage() {
   const currentUser = useCurrentUser();
   const { success: toastSuccess, error: toastError, warning: toastWarning } = useToast();
-  
+
   const [materials, setMaterials] = useState<Material[]>([]);
   const [transactions, setTransactions] = useState<MaterialTransaction[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
-  
+
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
   const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null);
   const [editingMaterialId, setEditingMaterialId] = useState<string | null>(null);
-  
+
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [materialForm, setMaterialForm] = useState({ name: "", unit: "", cost_per_unit: "", stock_current: "", safety_stock: "" });
@@ -237,7 +237,7 @@ export default function MaterialsPage() {
 
           {/* LEFT: MATERIALS LIST & ADD FORM */}
           <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-            
+
             {/* ADD/EDIT FORM */}
             {currentUser?.role?.toUpperCase() === 'ADMIN' && (
               <div style={{ background: "white", borderRadius: 24, padding: 32, boxShadow: "0 4px 24px rgba(0,0,0,0.04)" }}>
@@ -276,7 +276,7 @@ export default function MaterialsPage() {
                       <input type="number" style={inputStyle} value={materialForm.safety_stock} onChange={e => setMaterialForm({ ...materialForm, safety_stock: e.target.value })} placeholder="VD: 2" />
                     </div>
                   </div>
-                  
+
                   <button disabled={loading} type="submit" style={{ width: "100%", padding: 16, background: editingMaterialId ? "var(--success)" : "var(--accent)", color: "white", border: "none", borderRadius: 14, fontSize: 13, fontWeight: 900, cursor: "pointer", display: "flex", gap: 8, alignItems: "center", justifyContent: "center", transition: "0.2s", marginTop: 8 }} className="hover-btn">
                     {loading ? <AiOutlineLoading3Quarters size={18} className="spin" /> : editingMaterialId ? <><HiCheck size={18} /> LƯU THAY ĐỔI</> : <><HiPlus size={18} /> THÊM NGUYÊN LIỆU</>}
                   </button>
@@ -293,7 +293,7 @@ export default function MaterialsPage() {
                 </h3>
                 {fetchLoading && <AiOutlineLoading3Quarters size={18} className="spin" color="var(--accent)" />}
               </div>
-              
+
               <div className="custom-scroll" style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
                 {fetchLoading && materials.length === 0 ? (
                   [1, 2, 3, 4].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 16 }} />)
@@ -304,11 +304,11 @@ export default function MaterialsPage() {
                     const isSelected = selectedMaterialId === m.id;
                     const isLowStock = (m.safety_stock && m.stock_current <= m.safety_stock);
                     return (
-                      <div 
-                        key={m.id} 
+                      <div
+                        key={m.id}
                         onClick={() => { setSelectedMaterialId(isSelected ? null : m.id); setEditingMaterialId(null); }}
-                        style={{ 
-                          padding: 16, borderRadius: 16, border: `2px solid ${isSelected ? "var(--accent)" : "transparent"}`, 
+                        style={{
+                          padding: 16, borderRadius: 16, border: `2px solid ${isSelected ? "var(--accent)" : "transparent"}`,
                           background: isSelected ? "var(--bg-primary)" : "white", cursor: "pointer", transition: "0.2s",
                           boxShadow: isSelected ? "none" : "0 2px 8px rgba(0,0,0,0.02)", display: "flex", justifyContent: "space-between", alignItems: "center"
                         }}
@@ -321,7 +321,7 @@ export default function MaterialsPage() {
                             <span>Giá: {new Intl.NumberFormat('vi-VN').format(m.cost_per_unit)} ₫</span>
                           </div>
                         </div>
-                        
+
                         {currentUser?.role?.toUpperCase() === 'ADMIN' && (
                           <div style={{ display: "flex", gap: 8 }}>
                             <button onClick={(e) => startEditMaterial(m, e)} style={{ padding: 8, background: "white", border: "1px solid var(--border)", borderRadius: 10, color: "var(--text-primary)", cursor: "pointer" }}><HiPencilAlt size={16} /></button>
@@ -345,9 +345,9 @@ export default function MaterialsPage() {
                   <HiOutlineClipboardList size={24} color={activeMaterial ? "var(--accent)" : "var(--text-primary)"} />
                   {activeMaterial ? "LỊCH SỬ NGUYÊN LIỆU" : "SỔ KHO TỔNG HỢP"}
                 </h3>
-                <p style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 700 }}>
-                  {activeMaterial 
-                    ? `Theo dõi chi tiết nhập xuất cho: ${activeMaterial.name}` 
+                <p style={{ fontSize: 14, color: "var(--text-secondary)", fontWeight: 700 }}>
+                  {activeMaterial
+                    ? `Theo dõi chi tiết nhập xuất cho: ${activeMaterial.name}`
                     : "Lịch sử biến động kho cho tất cả nguyên liệu."}
                 </p>
               </div>
@@ -374,7 +374,7 @@ export default function MaterialsPage() {
                     <input style={{ ...inputStyle, padding: "12px 14px" }} value={transactionForm.note} onChange={e => setTransactionForm({ ...transactionForm, note: e.target.value })} placeholder="VD: Nhập lô 123" />
                   </div>
                   <button disabled={loading || !transactionForm.quantity} type="submit" style={{ padding: "12px 20px", background: "var(--accent)", color: "white", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 900, cursor: "pointer", display: "flex", gap: 8, alignItems: "center", transition: "0.2s", height: 43 }} className="hover-btn">
-                     {loading ? <AiOutlineLoading3Quarters size={16} className="spin" /> : <HiPlus size={16} />}
+                    {loading ? <AiOutlineLoading3Quarters size={16} className="spin" /> : <HiPlus size={16} />}
                   </button>
                 </form>
               </div>

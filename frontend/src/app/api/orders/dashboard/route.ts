@@ -12,8 +12,8 @@ export async function GET(request: Request) {
   const startDateParam = searchParams.get('startDate');
   const endDateParam = searchParams.get('endDate');
 
-  const startDate = startDateParam ? new Date(startDateParam) : startOfDay(new Date());
-  const endDate = endDateParam ? new Date(endDateParam) : endOfDay(new Date());
+  const startDate = startDateParam ? startOfDay(new Date(startDateParam + 'T00:00:00')) : startOfDay(new Date());
+  const endDate = endDateParam ? endOfDay(new Date(endDateParam + 'T00:00:00')) : endOfDay(new Date());
 
   const where: any = {
     status: 'COMPLETED',
@@ -76,6 +76,14 @@ export async function GET(request: Request) {
     hourMap.set(hourStr, hStats);
   }
 
+  // Fill all days in range (including zero-revenue days) so chart shows full range
+  const cursor = new Date(startDate);
+  while (cursor <= endDate) {
+    const ds = format(cursor, 'yyyy-MM-dd');
+    if (!revenueByDayMap.has(ds)) revenueByDayMap.set(ds, 0);
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
   const revenue_by_day = Array.from(revenueByDayMap.entries()).map(([date, revenue]) => ({ date, revenue }));
   revenue_by_day.sort((a, b) => a.date.localeCompare(b.date));
 
@@ -120,6 +128,8 @@ export async function GET(request: Request) {
     prev_total_net_revenue,
     orders_change_percent,
     revenue_change_percent,
+    period_start: format(prevStartDate, 'dd/MM/yyyy'),
+    period_end: format(prevEndDate, 'dd/MM/yyyy'),
   };
 
   return NextResponse.json({

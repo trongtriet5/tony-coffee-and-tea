@@ -78,6 +78,7 @@ export interface Order {
   print_count: number;
   created_at: string;
   items: OrderItem[];
+  table?: { id: string; name: string };
 }
 
 export interface DashboardStats {
@@ -93,6 +94,8 @@ export interface DashboardStats {
     prev_total_net_revenue: number;
     orders_change_percent: number;
     revenue_change_percent: number;
+    period_start?: string;
+    period_end?: string;
   };
 }
 
@@ -140,6 +143,11 @@ export interface Table {
   status: TableStatus;
   branch_id: string;
   area?: string;
+  current_order?: {
+    id: string;
+    order_number: string;
+    order_type: OrderType;
+  };
   orders?: {
     id: string;
     order_number: string;
