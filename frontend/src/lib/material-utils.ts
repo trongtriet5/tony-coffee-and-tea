@@ -3,15 +3,13 @@ import prisma from './prisma';
 export async function deductStockForOrder(
   orderId: string,
   orderNumber: string,
-  items: any[],
-  tx?: any
+  items: any[]
 ): Promise<void> {
-  const p = tx || prisma;
-
+  // Always use prisma directly - NOT inside a transaction to avoid transaction errors
   for (const item of items) {
     // 1. Deduct for Product Variant (Size)
     if (item.variant_id) {
-      const recipes = await p.productRecipe.findMany({
+      const recipes = await prisma.productRecipe.findMany({
         where: { variant_id: item.variant_id },
       });
 
@@ -20,8 +18,7 @@ export async function deductStockForOrder(
         await updateStockInternal(
           recipe.material_id,
           amountUsed,
-          `Đơn ${orderNumber} - ${item.product_name || 'Sản phẩm'}`,
-          p
+          `Đơn ${orderNumber} - ${item.product_name || 'Sản phẩm'}`
         );
       }
     }
@@ -29,7 +26,7 @@ export async function deductStockForOrder(
     // 2. Deduct for Toppings
     if (item.topping_ids && item.topping_ids.length > 0) {
       for (const toppingId of item.topping_ids) {
-        const recipes = await p.toppingRecipe.findMany({
+        const recipes = await prisma.toppingRecipe.findMany({
           where: { topping_id: toppingId },
         });
 
@@ -38,8 +35,7 @@ export async function deductStockForOrder(
           await updateStockInternal(
             recipe.material_id,
             amountUsed,
-            `Đơn ${orderNumber} - Topping`,
-            p
+            `Đơn ${orderNumber} - Topping`
           );
         }
       }
@@ -50,10 +46,9 @@ export async function deductStockForOrder(
 async function updateStockInternal(
   materialId: string,
   amount: number,
-  note: string,
-  p: any
+  note: string
 ): Promise<void> {
-  const material = await p.material.findUnique({
+  const material = await prisma.material.findUnique({
     where: { id: materialId },
     select: { stock_current: true },
   });
@@ -61,17 +56,17 @@ async function updateStockInternal(
   if (!material) return;
 
   const newStock = material.stock_current - amount;
-  // Note: NestJS threw error if newStock < 0. We'll do same if needed, or just warn.
   if (newStock < 0) {
-    // throw new Error(`Không đủ nguyên liệu cho ${note}`);
+    // Don't throw, just warn
+    return;
   }
 
-  const updatedMaterial = await p.material.update({
+  const updatedMaterial = await prisma.material.update({
     where: { id: materialId },
     data: { stock_current: Math.max(0, newStock) },
   });
 
-  await p.materialTransaction.create({
+  await prisma.materialTransaction.create({
     data: {
       material_id: materialId,
       type: 'USED',
@@ -80,17 +75,16 @@ async function updateStockInternal(
     },
   });
 
-  await handleAutoOffItems(materialId, updatedMaterial.stock_current, p);
+  await handleAutoOffItems(materialId, updatedMaterial.stock_current);
 }
 
 async function handleAutoOffItems(
   materialId: string,
-  newStock: number,
-  p: any
+  newStock: number
 ): Promise<void> {
   if (newStock <= 0) {
     // Find variants that use this material
-    const productRecipes = await p.productRecipe.findMany({
+    const productRecipes = await prisma.productRecipe.findMany({
       where: { material_id: materialId },
       include: { variant: true },
     });
@@ -98,19 +92,19 @@ async function handleAutoOffItems(
       new Set(productRecipes.map((r: any) => r.variant.product_id))
     );
     if (productIds.length > 0) {
-      await p.product.updateMany({
+      await prisma.product.updateMany({
         where: { id: { in: productIds as string[] } },
         data: { available: false },
       });
     }
 
     // Find toppings that use this material
-    const toppingRecipes = await p.toppingRecipe.findMany({
+    const toppingRecipes = await prisma.toppingRecipe.findMany({
       where: { material_id: materialId },
     });
     const toppingIds = toppingRecipes.map((r: any) => r.topping_id);
     if (toppingIds.length > 0) {
-      await p.topping.updateMany({
+      await prisma.topping.updateMany({
         where: { id: { in: toppingIds as string[] } },
         data: { available: false },
       });

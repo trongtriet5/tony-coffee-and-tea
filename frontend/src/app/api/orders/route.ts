@@ -126,41 +126,40 @@ export async function POST(request: Request) {
     }).format(new Date());
     const ddmm = todayStr.substring(0, 2) + todayStr.substring(3, 5);
 
-    const result = await prisma.$transaction(async (tx) => {
-      const order = await tx.order.create({
-        data: {
-          order_number: `TONY-${ddmm}-${uuidv4().split('-')[0].toUpperCase()}`,
-          total_amount: totalAmountVal,
-          discount_amount: discountAmountVal,
-          final_amount: finalAmountVal,
-          payment_method: dto.payment_method,
-          status: 'COMPLETED',
-          order_type: orderType,
-          source: source,
-          branch_id: dto.branch_id,
-          table_id: tableId,
-          items: { create: itemsData },
-        },
-        include: { items: { include: { product: true, variant: true, toppings: true } }, table: true },
-      });
-
-      const enrichedItems = dto.items.map((item: any) => ({
-        ...item,
-        product_name: productMap.get(item.product_id)?.name_vi || 'Sản phẩm',
-      }));
-      await deductStockForOrder(order.id, order.order_number, enrichedItems, tx);
-
-      if (tableId) {
-        const existingTable = await tx.table.findUnique({ where: { id: tableId } });
-        if (existingTable && existingTable.status !== 'OCCUPIED') {
-          await tx.table.update({ where: { id: tableId }, data: { status: 'OCCUPIED' } });
-        }
-      }
-
-      return order;
+    // Create order first
+    const order = await prisma.order.create({
+      data: {
+        order_number: `TONY-${ddmm}-${uuidv4().split('-')[0].toUpperCase()}`,
+        total_amount: totalAmountVal,
+        discount_amount: discountAmountVal,
+        final_amount: finalAmountVal,
+        payment_method: dto.payment_method,
+        status: 'COMPLETED',
+        order_type: orderType,
+        source: source,
+        branch_id: dto.branch_id,
+        table_id: tableId,
+        items: { create: itemsData },
+      },
+      include: { items: { include: { product: true, variant: true, toppings: true } }, table: true },
     });
 
-    return NextResponse.json(result);
+    // Update table status if dine-in
+    if (tableId) {
+      const existingTable = await prisma.table.findUnique({ where: { id: tableId } });
+      if (existingTable && existingTable.status !== 'OCCUPIED') {
+        await prisma.table.update({ where: { id: tableId }, data: { status: 'OCCUPIED' } });
+      }
+    }
+
+    // Deduct stock AFTER order is created (outside transaction)
+    const enrichedItems = dto.items.map((item: any) => ({
+      ...item,
+      product_name: productMap.get(item.product_id)?.name_vi || 'Sản phẩm',
+    }));
+    await deductStockForOrder(order.id, order.order_number, enrichedItems);
+
+    return NextResponse.json(order);
   } catch (error: any) {
     return NextResponse.json({ message: error.message }, { status: 400 });
   }

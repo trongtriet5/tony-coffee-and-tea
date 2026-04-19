@@ -121,7 +121,7 @@ export async function POST(
       ...item,
       product_name: productMap.get(item.product_id)?.name_vi || 'Sản phẩm',
     }));
-    await deductStockForOrder(id, order.order_number, enrichedItems, prisma);
+    await deductStockForOrder(id, order.order_number, enrichedItems);
 
     return NextResponse.json({ ...updatedOrder, new_items_total: totalAmountVal });
   } catch (error: any) {

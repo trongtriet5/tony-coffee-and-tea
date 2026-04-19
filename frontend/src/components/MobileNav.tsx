@@ -25,7 +25,7 @@ export default function MobileNav() {
     setIsOpen(false);
   }, [pathname]);
 
-  if (!isMobile || pathname === '/login') return null;
+  if (!isMobile || pathname === '/login' || !currentUser) return null;
 
   const handleLogout = () => {
     localStorage.clear();
@@ -44,7 +44,7 @@ export default function MobileNav() {
     { href: "/employees", icon: HiUsers, label: "Quản lý tài khoản", roles: ["ADMIN"] },
   ];
 
-  const currentRole = currentUser?.role?.toUpperCase() || "";
+  const currentRole = currentUser?.role?.toUpperCase() || "MANAGER";
   const filteredMenu = menuItems.filter(item => item.roles.includes(currentRole));
 
   return (
