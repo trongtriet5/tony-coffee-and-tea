@@ -232,8 +232,12 @@ export default function POSPage() {
   useEffect(() => {
     if (currentUser) {
       if (currentUser.branch_id) setSelectedBranchId(currentUser.branch_id);
+      if (currentUser.role === 'ADMIN' && pathname !== '/dashboard') {
+        window.location.href = '/dashboard';
+        return;
+      }
     }
-  }, [currentUser]);
+  }, [currentUser, pathname]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -249,7 +253,8 @@ export default function POSPage() {
     
     // Initial data fetch
     Promise.all([getBranches(), getCategories()]).then(([brs, cats]) => {
-      setBranches(brs);
+      setBranches(brs || []);
+      setPageLoading(false);
       
       const orderMap: Record<string, number> = {
         "CÀ PHÊ": 1,
@@ -271,6 +276,7 @@ export default function POSPage() {
         .sort((a, b) => (orderMap[a.toUpperCase()] || 99) - (orderMap[b.toUpperCase()] || 99));
 
       setCategories([...new Set([...sortedCats, "Topping"])]);
+      setPageLoading(false);
 
       const params = new URLSearchParams(window.location.search);
       const tId = params.get("tableId");
@@ -512,14 +518,6 @@ export default function POSPage() {
         <AiOutlineLoading3Quarters size={40} className="spin" color="var(--accent)" />
       </div>
     );
-  }
-
-  // Admin role should be redirected to dashboard
-  if (currentUser?.role === 'ADMIN') {
-    if (typeof window !== 'undefined' && window.location.pathname !== '/dashboard') {
-      window.location.href = '/dashboard';
-      return null;
-    }
   }
 
   return (

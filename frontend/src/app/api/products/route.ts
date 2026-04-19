@@ -7,18 +7,25 @@ const CACHE_KEYS = {
   PRODUCTS_ALL: 'products:all',
   PRODUCTS_AVAILABLE: 'products:available',
   CATEGORIES: 'categories',
+  TOPPINGS_ALL: 'toppings:all',
+  TOPPINGS_AVAILABLE: 'toppings:available',
 };
 
 export async function GET(request: Request) {
   const user = await getAuthUser();
-  if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  // Don't require auth for products - return empty if not authenticated  
+  if (!user) return NextResponse.json([]);
 
   const { searchParams } = new URL(request.url);
   const includeUnavailable = searchParams.get('all') === 'true';
+  const bypassCache = searchParams.get('refresh') === 'true';
 
   const cacheKey = includeUnavailable ? CACHE_KEYS.PRODUCTS_ALL : CACHE_KEYS.PRODUCTS_AVAILABLE;
-  const cached = cache.get<any[]>(cacheKey);
-  if (cached) return NextResponse.json(cached);
+  
+  if (!bypassCache) {
+    const cached = cache.get<any[]>(cacheKey);
+    if (cached && cached.length > 0) return NextResponse.json(cached);
+  }
 
   const products = await prisma.product.findMany({
     where: includeUnavailable ? undefined : { available: true },
@@ -42,7 +49,9 @@ export async function GET(request: Request) {
     return { ...p, variants: enrichedVariants, has_recipe: productHasRecipe };
   });
 
-  cache.set(cacheKey, result);
+  if (result.length > 0) {
+    cache.set(cacheKey, result);
+  }
   return NextResponse.json(result);
 }
 

@@ -8,7 +8,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getAuthUser();
-  if (!user || (user.role !== 'ADMIN' && user.role !== 'MANAGER')) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!user || user.role !== 'ADMIN') return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
   const { id } = await params;
   try {
@@ -39,16 +39,6 @@ export async function DELETE(
 
   const { id } = await params;
   try {
-    const orderItemToppingCount = await prisma.orderItemTopping.count({
-      where: { topping_id: id },
-    });
-    if (orderItemToppingCount > 0) {
-      return NextResponse.json(
-        { message: 'Topping đã có trong lịch sử đơn hàng, không thể xóa hoàn toàn. Vui lòng tắt "Khả dụng" để ẩn.' },
-        { status: 400 }
-      );
-    }
-
     await prisma.toppingRecipe.deleteMany({ where: { topping_id: id } });
     const result = await prisma.topping.delete({ where: { id } });
     

@@ -115,7 +115,7 @@ export const getMaterialTransactions = (id: string, limit?: number): Promise<Mat
 export const getAllTransactions = (branchId?: string, limit: number = 100): Promise<MaterialTransaction[]> => api.get('/materials/transactions/all', { params: { branch_id: branchId, limit } }).then((r) => r.data);
 export const getInventoryReport = (params?: { startDate?: string; endDate?: string }): Promise<any> => api.get('/materials/reports/inventory', { params }).then((r) => r.data);
 export const exportMaterialsExcel = (branchId?: string): string => `${BASE_URL}/materials/export/excel${branchId ? `?branch_id=${branchId}` : ''}`;
-export const getMaterialTemplateUrl = (): string => `${BASE_URL}/materials/export/template`;
+export const getMaterialTemplateUrl = (): string => `${BASE_URL}/materials/export?type=template`;
 export const importMaterials = (file: File, branchId?: string): Promise<any> => {
   const formData = new FormData();
   formData.append('file', file);
@@ -143,7 +143,7 @@ export const updateToppingRecipe = (id: string, quantity: number): Promise<any> 
 export const deleteToppingRecipe = (id: string): Promise<void> => api.delete(`/recipes/toppings/${id}`).then((r) => r.data);
 
 export const exportRecipesExcel = (): string => `${BASE_URL}/recipes/export/excel`;
-export const getRecipeTemplateUrl = (): string => `${BASE_URL}/recipes/export/template`;
+export const getRecipeTemplateUrl = (): string => `${BASE_URL}/recipes/export?type=template`;
 export const importRecipes = (file: File): Promise<any> => {
   const formData = new FormData();
   formData.append('file', file);

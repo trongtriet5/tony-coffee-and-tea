@@ -437,10 +437,29 @@ export default function DashboardPage() {
                   maintainAspectRatio: false,
                   plugins: {
                     legend: { display: false },
+                    datalabels: {
+                      color: '#666',
+                      anchor: 'end',
+                      align: 'top',
+                      offset: 4,
+                      font: { weight: 700, size: 10 },
+                      formatter: (v: any) => v > 0 ? v : '',
+                      display: true
+                    }
                   },
                   scales: {
-                    y: { beginAtZero: true },
-                    x: { display: true }
+                    y: { 
+                      beginAtZero: true,
+                      border: { display: false },
+                      grid: { color: 'rgba(0, 0, 0, 0.04)' },
+                      ticks: { font: { weight: 700, size: 11 } }
+                    },
+                    x: { 
+                      display: true,
+                      border: { display: false },
+                      grid: { display: false },
+                      ticks: { font: { weight: 700, size: 11 } }
+                    }
                   }
                 }}
               />

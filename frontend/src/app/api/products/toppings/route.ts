@@ -5,14 +5,19 @@ import { getAuthUser } from '@/lib/auth-headers';
 
 export async function GET(request: Request) {
   const user = await getAuthUser();
-  if (!user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  // Don't require auth - return empty array if not authenticated
+  if (!user) return NextResponse.json([]);
 
   const { searchParams } = new URL(request.url);
   const includeUnavailable = searchParams.get('all') === 'true';
+  const bypassCache = searchParams.get('refresh') === 'true';
 
   const cacheKey = includeUnavailable ? 'toppings:all' : 'toppings:available';
-  const cached = cache.get<any[]>(cacheKey);
-  if (cached) return NextResponse.json(cached);
+  
+  if (!bypassCache) {
+    const cached = cache.get<any[]>(cacheKey);
+    if (cached) return NextResponse.json(cached);
+  }
 
   const toppings = await prisma.topping.findMany({
     where: includeUnavailable ? undefined : { available: true },

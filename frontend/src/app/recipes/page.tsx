@@ -7,7 +7,7 @@ import {
   importRecipes, getRecipeTemplateUrl, exportRecipesExcel
 } from "@/lib/api";
 import { Product, Topping, Material } from "@/types";
-import { HiPlus, HiCollection, HiSparkles, HiCheck, HiPencilAlt, HiTrash, HiUpload, HiDownload, HiDocumentText } from "react-icons/hi";
+import { HiPlus, HiCollection, HiSparkles, HiCheck, HiPencilAlt, HiTrash, HiUpload, HiDownload, HiDocumentText, HiEye } from "react-icons/hi";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useToast } from "@/components/ToastProvider";
@@ -40,6 +40,8 @@ export default function RecipePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [recipeForm, setRecipeForm] = useState({ material_id: "", quantity: "" });
+  const [batchMode, setBatchMode] = useState(false);
+  const [batchMaterials, setBatchMaterials] = useState<{ material_id: string; quantity: string }[]>([{ material_id: "", quantity: "" }]);
 
   useEffect(() => {
     if (currentUser) {
@@ -136,6 +138,63 @@ export default function RecipePage() {
     } catch (error) {
       toastError("Có lỗi xảy ra khi thêm công thức");
     } finally { setLoading(false); }
+  };
+
+  const handleBatchAddRecipe = async () => {
+    const validItems = batchMaterials.filter(m => m.material_id && m.quantity);
+    if (validItems.length === 0) {
+      toastWarning("Vui lòng nhập ít nhất một nguyên liệu hợp lệ");
+      return;
+    }
+    if (activeTab === "product" && !selectedVariantId) {
+      toastWarning("Vui lòng chọn Size cho sản phẩm");
+      return;
+    }
+    setLoading(true);
+    try {
+      for (const item of validItems) {
+        if (activeTab === "product") {
+          await createProductRecipe({
+            variant_id: selectedVariantId,
+            material_id: item.material_id,
+            quantity: parseFloat(item.quantity),
+          });
+        } else {
+          await createToppingRecipe({
+            topping_id: selectedToppingId,
+            material_id: item.material_id,
+            quantity: parseFloat(item.quantity),
+          });
+        }
+      }
+      if (activeTab === "product") {
+        loadProductRecipes(selectedVariantId);
+      } else {
+        loadToppingRecipes(selectedToppingId);
+      }
+      setBatchMaterials([{ material_id: "", quantity: "" }]);
+      setBatchMode(false);
+      toastSuccess(`Thêm ${validItems.length} công thức thành công!`);
+      fetchData();
+    } catch (error) {
+      toastError("Có lỗi xảy ra khi thêm công thức");
+    } finally { setLoading(false); }
+  };
+
+  const addBatchRow = () => {
+    setBatchMaterials([...batchMaterials, { material_id: "", quantity: "" }]);
+  };
+
+  const updateBatchRow = (index: number, field: "material_id" | "quantity", value: string) => {
+    const updated = [...batchMaterials];
+    updated[index][field] = value;
+    setBatchMaterials(updated);
+  };
+
+  const removeBatchRow = (index: number) => {
+    if (batchMaterials.length > 1) {
+      setBatchMaterials(batchMaterials.filter((_, i) => i !== index));
+    }
   };
 
   const handleDeleteRecipe = async (id: string) => {
@@ -403,11 +462,89 @@ export default function RecipePage() {
                 {/* Add Recipe Form */}
                 {currentUser?.role?.toUpperCase() === 'ADMIN' && (
                   <div style={{ paddingTop: 20, borderTop: "2px solid var(--bg-primary)" }}>
-                    <h4 style={{ fontSize: 11, fontWeight: 900, marginBottom: 16, color: "var(--text-muted)" }}>THÊM NGUYÊN LIỆU MỚI</h4>
-                    <form onSubmit={handleAddRecipe}>
-                      <div style={{ display: "grid", gridTemplateColumns: activeTab === "product" ? "1.2fr 1fr 1fr" : "1.2fr 1fr", gap: 12, marginBottom: 16 }}>
-                        {activeTab === "product" && (
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                      <h4 style={{ fontSize: 11, fontWeight: 900, color: "var(--text-muted)" }}>THÊM NGUYÊN LIỆU MỚI</h4>
+                      <button
+                        onClick={() => setBatchMode(!batchMode)}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          border: "none",
+                          background: batchMode ? "var(--accent)" : "var(--bg-primary)",
+                          color: batchMode ? "white" : "var(--text-secondary)",
+                          fontSize: 11,
+                          fontWeight: 900,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4
+                        }}
+                      >
+                        <HiEye size={14} /> {batchMode ? "THÊM TỪNG" : "THÊM NHIỀU"}
+                      </button>
+                    </div>
+
+                    {!batchMode ? (
+                      <form onSubmit={handleAddRecipe}>
+                        <div style={{ display: "grid", gridTemplateColumns: activeTab === "product" ? "1.2fr 1fr 1fr" : "1.2fr 1fr", gap: 12, marginBottom: 16 }}>
+                          {activeTab === "product" && (
+                            <div>
+                              <label style={labelStyle}>SIZE</label>
+                              <select
+                                style={{ ...inputStyle, padding: "10px 12px" }}
+                                value={selectedVariantId}
+                                onChange={e => setSelectedVariantId(e.target.value)}
+                                required
+                              >
+                                <option value="">-- Chọn Size --</option>
+                                {products.find(p => p.id === selectedProductId)?.variants?.map(v => (
+                                  <option key={v.id} value={v.id}>{v.size}</option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                           <div>
+                            <label style={labelStyle}>NGUYÊN LIỆU</label>
+                            <select
+                              style={{ ...inputStyle, padding: "10px 12px" }}
+                              value={recipeForm.material_id}
+                              onChange={e => setRecipeForm({ ...recipeForm, material_id: e.target.value })}
+                              required
+                            >
+                              <option value="">-- Chọn --</option>
+                              {materials.map(m => <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label style={labelStyle}>ĐỊNH LƯỢNG</label>
+                            <input
+                              type="number"
+                              step="0.001"
+                              placeholder="Số lượng..."
+                              style={{ ...inputStyle, padding: "10px 12px" }}
+                              value={recipeForm.quantity}
+                              onChange={e => setRecipeForm({ ...recipeForm, quantity: e.target.value })}
+                              required
+                            />
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button type="submit" disabled={loading} style={{ flex: 2, padding: 14, background: "var(--accent)", color: "white", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 900, cursor: "pointer", display: "flex", gap: 8, alignItems: "center", justifyContent: "center", transition: "0.2s" }} className="hover-btn">
+                            {loading ? <AiOutlineLoading3Quarters size={16} className="spin" /> : <><HiPlus size={18} /> THÊM</>}
+                          </button>
+                          <button
+                            onClick={() => { setBatchMode(true); if (!selectedVariantId && activeTab === "product" && products.find(p => p.id === selectedProductId)?.variants?.length) setSelectedVariantId(products.find(p => p.id === selectedProductId)?.variants?.[0]?.id || ""); }}
+                            style={{ flex: 1, padding: 14, background: "var(--bg-primary)", color: "var(--text-secondary)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 800, cursor: "pointer" }}
+                            title="Thêm nhiều nguyên liệu 1 lúc"
+                          >
+                            + THÊM NHIỀU NGUYÊN LIỆU
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div>
+                        {activeTab === "product" && (
+                          <div style={{ marginBottom: 12 }}>
                             <label style={labelStyle}>SIZE</label>
                             <select
                               style={{ ...inputStyle, padding: "10px 12px" }}
@@ -422,35 +559,52 @@ export default function RecipePage() {
                             </select>
                           </div>
                         )}
-                        <div>
-                          <label style={labelStyle}>NGUYÊN LIỆU</label>
-                          <select
-                            style={{ ...inputStyle, padding: "10px 12px" }}
-                            value={recipeForm.material_id}
-                            onChange={e => setRecipeForm({ ...recipeForm, material_id: e.target.value })}
-                            required
-                          >
-                            <option value="">-- Chọn --</option>
-                            {materials.map(m => <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>)}
-                          </select>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16, maxHeight: 200, overflowY: "auto" }}>
+                          {batchMaterials.map((row, idx) => (
+                            <div key={idx} style={{ display: "grid", gridTemplateColumns: "2fr 1fr auto", gap: 8, alignItems: "center" }}>
+                              <select
+                                style={{ ...inputStyle, padding: "8px 10px" }}
+                                value={row.material_id}
+                                onChange={e => updateBatchRow(idx, "material_id", e.target.value)}
+                              >
+                                <option value="">-- Chọn --</option>
+                                {materials.map(m => <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>)}
+                              </select>
+                              <input
+                                type="number"
+                                step="0.001"
+                                placeholder="SL..."
+                                style={{ ...inputStyle, padding: "8px 10px" }}
+                                value={row.quantity}
+                                onChange={e => updateBatchRow(idx, "quantity", e.target.value)}
+                              />
+                              <button
+                                onClick={() => removeBatchRow(idx)}
+                                style={{ background: "transparent", border: "none", color: "var(--danger)", cursor: "pointer", padding: 8 }}
+                                disabled={batchMaterials.length === 1}
+                              >
+                                <HiTrash size={16} />
+                              </button>
+                            </div>
+                          ))}
                         </div>
-                        <div>
-                          <label style={labelStyle}>ĐỊNH LƯỢNG</label>
-                          <input
-                            type="number"
-                            step="0.001"
-                            placeholder="Số lượng..."
-                            style={{ ...inputStyle, padding: "10px 12px" }}
-                            value={recipeForm.quantity}
-                            onChange={e => setRecipeForm({ ...recipeForm, quantity: e.target.value })}
-                            required
-                          />
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button
+                            onClick={addBatchRow}
+                            style={{ flex: 1, padding: 12, background: "var(--bg-primary)", color: "var(--text-secondary)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 800, cursor: "pointer" }}
+                          >
+                            + THÊM DÒNG
+                          </button>
+                          <button
+                            onClick={handleBatchAddRecipe}
+                            disabled={loading}
+                            style={{ flex: 2, padding: 12, background: "var(--accent)", color: "white", border: "none", borderRadius: 12, fontSize: 12, fontWeight: 900, cursor: "pointer", display: "flex", gap: 6, alignItems: "center", justifyContent: "center" }}
+                          >
+                            {loading ? <AiOutlineLoading3Quarters size={16} className="spin" /> : "THÊM TẤT CẢ"}
+                          </button>
                         </div>
                       </div>
-                      <button disabled={loading} type="submit" style={{ width: "100%", padding: 14, background: "var(--accent)", color: "white", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 900, cursor: "pointer", display: "flex", gap: 8, alignItems: "center", justifyContent: "center", transition: "0.2s" }} className="hover-btn">
-                        {loading ? <AiOutlineLoading3Quarters size={16} className="spin" /> : <><HiPlus size={18} /> XÁC NHẬN THÊM</>}
-                      </button>
-                    </form>
+                    )}
                   </div>
                 )}
               </div>

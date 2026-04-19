@@ -32,13 +32,11 @@ export function useToppings(all: boolean = true) {
 }
 
 export async function refreshProducts() {
-  await Promise.all([
-    mutate(`${API_URL}/products`, getProducts({ all: true }), false),
-    mutate(`${API_URL}/products?all=false`, getProducts({ all: false }), false),
-    mutate(`${API_URL}/products/categories`, getCategories(), false),
-    mutate(`${API_URL}/products/toppings`, getToppings({ all: true }), false),
-    mutate(`${API_URL}/products/toppings?all=false`, getToppings({ all: false }), false),
-  ]);
+  await mutate(`${API_URL}/products?all=true`, getProducts({ all: true }), true);
+  await mutate(`${API_URL}/products?all=false`, getProducts({ all: false }), true);
+  await mutate(`${API_URL}/products/categories`, getCategories(), true);
+  await mutate(`${API_URL}/products/toppings?all=true`, getToppings({ all: true }), true);
+  await mutate(`${API_URL}/products/toppings?all=false`, getToppings({ all: false }), true);
 }
 
 export async function optimisticCreateProduct(data: any) {

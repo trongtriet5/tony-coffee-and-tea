@@ -69,6 +69,26 @@ export default function ProductsManagementPage() {
     } finally { setLoading(false); }
   };
 
+  const handleToggleProductAvailability = async (product: Product, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await optimisticUpdateProduct(product.id, { available: !product.available } as any);
+      toastSuccess(`${product.available ? 'Tắt' : 'Bật'} món thành công!`);
+    } catch (error) {
+      toastError("Có lỗi khi cập nhật trạng thái");
+    }
+  };
+
+  const handleToggleToppingAvailability = async (topping: Topping, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await optimisticUpdateTopping(topping.id, { available: !topping.available });
+      toastSuccess(`${topping.available ? 'Tắt' : 'Bật'} topping thành công!`);
+    } catch (error) {
+      toastError("Có lỗi khi cập nhật trạng thái");
+    }
+  };
+
   const handleCreateOrUpdateTopping = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!toppingForm.name || !toppingForm.price) return;
@@ -336,7 +356,13 @@ export default function ProductsManagementPage() {
                             <div>
                               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                                 <span style={{ fontSize: 16, fontWeight: 900 }}>{(p as any).name_vi}</span>
-                                {p.available ? <HiBadgeCheck size={16} color="var(--success)" /> : <HiBan size={16} color="var(--danger)" />}
+                                <button 
+                                  onClick={(e) => handleToggleProductAvailability(p, e)}
+                                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}
+                                  title={p.available ? "Tắt món" : "Bật món"}
+                                >
+                                  {p.available ? <HiBadgeCheck size={16} color="var(--success)" /> : <HiBan size={16} color="var(--danger)" />}
+                                </button>
                               </div>
                               <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text-secondary)", display: "flex", gap: 8 }}>
                                 <span style={{ background: "white", padding: "2px 8px", borderRadius: 6 }}>{(p as any).category || "KHÁC"}</span>
@@ -383,7 +409,13 @@ export default function ProductsManagementPage() {
                             <div>
                               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                                 <span style={{ fontSize: 14, fontWeight: 900 }}>{t.name}</span>
-                                {t.available ? <HiBadgeCheck size={16} color="var(--success)" /> : <HiBan size={16} color="var(--danger)" />}
+                                <button 
+                                  onClick={(e) => handleToggleToppingAvailability(t, e)}
+                                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}
+                                  title={t.available ? "Tắt topping" : "Bật topping"}
+                                >
+                                  {t.available ? <HiBadgeCheck size={16} color="var(--success)" /> : <HiBan size={16} color="var(--danger)" />}
+                                </button>
                               </div>
                               <span style={{ fontSize: 11, fontWeight: 800, color: "var(--text-secondary)" }}>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(t.price)}</span>
                             </div>

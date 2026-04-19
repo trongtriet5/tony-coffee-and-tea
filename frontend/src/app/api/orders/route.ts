@@ -29,24 +29,16 @@ export async function GET(request: Request) {
       skip,
       take: limit,
       orderBy: { created_at: 'desc' },
-      select: {
-        id: true,
-        order_number: true,
-        total_amount: true,
-        discount_amount: true,
-        final_amount: true,
-        payment_method: true,
-        status: true,
-        order_type: true,
-        source: true,
-        branch_id: true,
-        table_id: true,
-        note: true,
-        created_at: true,
-        print_count: true,
+      include: {
+        items: { 
+          include: { 
+            product: { select: { id: true, name_vi: true, name_en: true } },
+            variant: { select: { id: true, size: true, price: true } },
+            toppings: { select: { id: true, name: true, price: true } }
+          } 
+        },
         branch: { select: { id: true, name: true } },
         table: { select: { id: true, name: true } },
-        _count: { select: { items: true } },
       },
     }),
     prisma.order.count({ where }),

@@ -196,6 +196,9 @@ export default function MaterialsPage() {
             )}
             {currentUser?.role?.toUpperCase() === 'ADMIN' && (
               <>
+                <a href={getMaterialTemplateUrl()} target="_blank" style={{ textDecoration: "none", background: "white", color: "var(--accent)", padding: "12px 20px", borderRadius: 14, fontSize: 13, fontWeight: 900, display: "flex", alignItems: "center", gap: 8, border: "1px solid var(--border)", boxShadow: "var(--shadow-sm)", transition: "0.2s" }} className="hover-btn">
+                  <HiDocumentText size={18} /> TEMPLATE
+                </a>
                 <button onClick={() => fileInputRef.current?.click()} style={{ background: "white", color: "var(--text-primary)", padding: "12px 20px", borderRadius: 14, fontSize: 13, fontWeight: 900, display: "flex", alignItems: "center", gap: 8, border: "1px solid var(--border)", cursor: "pointer", boxShadow: "var(--shadow-sm)", transition: "0.2s" }} className="hover-btn">
                   <HiUpload size={18} /> IMPORT
                   <input type="file" ref={fileInputRef} onChange={handleImport} style={{ display: "none" }} accept=".xlsx,.xls" />
@@ -203,7 +206,7 @@ export default function MaterialsPage() {
               </>
             )}
             <a href={exportMaterialsExcel(selectedBranchId)} target="_blank" style={{ textDecoration: "none", background: "var(--accent)", color: "white", padding: "12px 20px", borderRadius: 14, fontSize: 13, fontWeight: 900, display: "flex", alignItems: "center", gap: 8, border: "none", boxShadow: "0 4px 12px rgba(202, 162, 26, 0.3)", transition: "0.2s" }} className="hover-btn">
-              <HiDownload size={18} /> BACKUP DATA
+              <HiDownload size={18} /> EXPORT
             </a>
           </div>
         </div>

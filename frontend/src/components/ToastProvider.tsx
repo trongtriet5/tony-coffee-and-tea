@@ -102,26 +102,15 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const addToast = useCallback((message: string, type: ToastType = "info") => {
-    if (typeof window !== "undefined" && (window as any).Swal) {
-      const Swal = (window as any).Swal;
-      const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast: any) => {
-          toast.addEventListener('mouseenter', Swal.stopTimer)
-          toast.addEventListener('mouseleave', Swal.resumeTimer)
-        }
-      });
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
-      Toast.fire({
-        icon: type,
-        title: message
-      });
-    }
+  const removeToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  const addToast = useCallback((message: string, type: ToastType = "info") => {
+    const id = Math.random().toString(36).substring(2);
+    setToasts(prev => [...prev, { id, message, type }]);
   }, []);
 
   const ctx: ToastContextValue = {
@@ -134,6 +123,22 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={ctx}>
       {children}
+      {toasts.length > 0 && (
+        <div style={{
+          position: "fixed",
+          top: 24,
+          right: 24,
+          zIndex: 9999,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          maxWidth: 400,
+        }}>
+          {toasts.map(t => (
+            <ToastItem key={t.id} toast={t} onRemove={removeToast} />
+          ))}
+        </div>
+      )}
     </ToastContext.Provider>
   );
 }

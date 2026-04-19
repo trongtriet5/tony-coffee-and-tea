@@ -148,39 +148,59 @@ export default function OrdersPage() {
       return format(new Date(d.getTime() + d.getTimezoneOffset() * 60000), pat);
    };
 
-   const handleExportExcel = async () => {
-      try {
-         const res = await getOrders({ page: 1, limit: 10000, search });
-         const allOrders = (res as any).data || [];
+const handleExportExcel = async () => {
+       try {
+          const res = await getOrders({ page: 1, limit: 10000, search });
+          const allOrders = (res as any).data || [];
 
-         const headers = ["MÃ ĐƠN HÀNG", "CHI NHÁNH", "THỜI GIAN", "TỔNG SỐ MÓN", "CHI TIẾT MÓN", "GIẢM GIÁ (VND)", "TỔNG THANH TOÁN (VND)", "THANH TOÁN", "HÌNH THỨC", "TRẠNG THÁI"];
+          const headers = ["MÃ ĐƠN HÀNG", "CHI NHÁNH", "THỜI GIAN", "TÊN MÓN", "SỐ LƯỢNG", "GIÁ MÓN", "THANH TOÁN", "HÌNH THỨC", "TRẠNG THÁI"];
 
-         const rows = allOrders.map((o: any) => {
-            const itemsStr = (o.items || []).map((i: any) => `${i.quantity}x ${i.product?.name_vi || 'Món'}`).join('; ');
-            return [
-               o.order_number,
-               o.branch?.name || "N/A",
-               formatExactDBTime(o.created_at, "HH:mm dd/MM/yyyy"),
-               o.items?.reduce((s: number, i: any) => s + i.quantity, 0) || 0,
-               itemsStr,
-               o.discount_amount,
-               o.final_amount,
-               o.payment_method === "CASH" ? "Tiền mặt" : "Chuyển khoản",
-               o.order_type === "TAKEAWAY" ? "Mang đi" : "Tại chỗ",
-               "HOÀN TẤT"
-            ];
-         });
+          const rows: any[][] = [];
+          allOrders.forEach((o: any) => {
+             const items = o.items || [];
+             if (items.length === 0) {
+                rows.push([
+                   o.order_number,
+                   o.branch?.name || "N/A",
+                   formatExactDBTime(o.created_at, "HH:mm dd/MM/yyyy"),
+                   "",
+                   0,
+                   0,
+                   o.final_amount,
+                   o.payment_method === "CASH" ? "Tiền mặt" : "Chuyển khoản",
+                   o.order_type === "TAKEAWAY" ? "Mang đi" : "Tại chỗ",
+                   "HOÀN TẤT"
+                ]);
+             } else {
+                items.forEach((item: any, idx: number) => {
+                   const unitPrice = item.unit_price || 0;
+                   const productName = item.product?.name_vi || (item as any).product_name || "Món";
+                   rows.push([
+                      idx === 0 ? o.order_number : "",
+                      idx === 0 ? (o.branch?.name || "N/A") : "",
+                      idx === 0 ? formatExactDBTime(o.created_at, "HH:mm dd/MM/yyyy") : "",
+                      productName,
+                      item.quantity,
+                      unitPrice,
+                      idx === 0 ? o.final_amount : "",
+                      idx === 0 ? (o.payment_method === "CASH" ? "Tiền mặt" : "Chuyển khoản") : "",
+                      idx === 0 ? (o.order_type === "TAKEAWAY" ? "Mang đi" : "Tại chỗ") : "",
+                      idx === 0 ? "HOÀN TẤT" : ""
+                   ]);
+                });
+             }
+          });
 
-         const worksheetData = [headers, ...rows];
-         const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-         const wb = XLSX.utils.book_new();
-         XLSX.utils.book_append_sheet(wb, ws, "Orders");
-         XLSX.writeFile(wb, `LichSuDonHang_${format(new Date(), "ddMMyyyy")}.xlsx`);
-      } catch (err) {
-         console.error("Export error", err);
-         toastError("Có lỗi xảy ra khi xuất dữ liệu.");
-      }
-   };
+          const worksheetData = [headers, ...rows];
+          const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Orders");
+          XLSX.writeFile(wb, `LichSuDonHang_${format(new Date(), "ddMMyyyy")}.xlsx`);
+       } catch (err) {
+          console.error("Export error", err);
+          toastError("Có lỗi xảy ra khi xuất dữ liệu.");
+       }
+    };
 
    return (
       <div style={{ minHeight: "100vh", background: "var(--bg-primary)", padding: isMobile ? "32px 24px" : "40px 40px 60px 120px" }}>
@@ -478,15 +498,13 @@ export default function OrdersPage() {
                            <span>Ngày: {format(new Date(selectedOrder.created_at), "dd/MM/yyyy")}</span>
                            <span>Giờ: {format(new Date(selectedOrder.created_at), "HH:mm:ss")}</span>
                         </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "11px" }}>
-                           <span>Thu ngân: {(selectedOrder as any).branch?.name || "Tony Coffee & Tea"}</span>
-                        </div>
-                        {selectedOrder.order_type === "TAKEAWAY" ? "Mang đi" : (
-                           <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "11px" }}>
-                              <span>Bàn:</span>
-                              <span style={{ fontWeight: "bold" }}>{selectedOrder.table?.name}</span>
-                           </div>
-                        )}
+<div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "11px" }}>
+                            <span>Thu ngân: {(selectedOrder as any).branch?.name || "Tony Coffee & Tea"}</span>
+                         </div>
+                         <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "11px" }}>
+                            <span>Bàn:</span>
+                            <span style={{ fontWeight: "bold" }}>{selectedOrder.order_type === "TAKEAWAY" ? "Mang đi" : (selectedOrder.table?.name || "Mang đi")}</span>
+                         </div>
                      </div>
                      <table style={{ width: "100%", borderTop: "1px solid black", borderBottom: "1px solid black", borderCollapse: "collapse", marginTop: "10px" }}>
                         <thead>
