@@ -114,6 +114,7 @@ export async function POST(request: Request) {
         quantity: item.quantity,
         unit_price: unitPrice,
         subtotal: itemSubtotal,
+        note: item.note || null,
         toppings: { create: selectedToppings },
       };
     });

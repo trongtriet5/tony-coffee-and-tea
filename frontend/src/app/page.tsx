@@ -141,6 +141,13 @@ padding: "16px",
                     + {item.toppings.map((t: any) => t.name).join(", ")}
                   </div>
                 )}
+                {item.note && (
+                  <div style={{ fontSize: "9px", paddingLeft: "12px", color: "#666" }}>
+                    {item.note.split(', ').map((part: string, idx: number) => (
+                      <div key={idx}>- {part}</div>
+                    ))}
+                  </div>
+                )}
               </td>
               <td style={{ textAlign: "center", padding: "4px 0" }}>{item.quantity}</td>
               <td style={{ textAlign: "right", padding: "4px 0" }}>{item.unit_price.toLocaleString()}</td>
@@ -212,6 +219,9 @@ export default function POSPage() {
   const [activeProduct, setActiveProduct] = useState<Product | null>(null);
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [selectedToppings, setSelectedToppings] = useState<Record<string, number>>({});
+  const [productNote, setProductNote] = useState("");
+  const [iceLevel, setIceLevel] = useState<string | null>(null);
+  const [sugarLevel, setSugarLevel] = useState<string | null>(null);
 
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<Order | null>(null);
@@ -346,20 +356,24 @@ export default function POSPage() {
     });
   }, [products, toppings, selectedCategory, deferredSearchQuery]);
 
-  const addToCart = useCallback((product: Product, variantId: string | undefined, selectedTops: Topping[]) => {
+  const addToCart = useCallback((product: Product, variantId: string | undefined, selectedTops: Topping[], note?: string) => {
     setCart((prev) => {
       const topIds = selectedTops.map(t => t.id).sort().join(',');
+      
+      // Find existing item with SAME product + variant + toppings + NOTE
       const existing = prev?.find((i: any) =>
         !i.isExisting &&
         i.product?.id === product.id &&
         i.variant_id === variantId &&
-        (i.selectedToppings || []).map((t: any) => t.id).sort().join(',') === topIds
+        (i.selectedToppings || []).map((t: any) => t.id).sort().join(',') === topIds &&
+        i.note === note
       );
 
       if (existing) {
         return prev.map((i: any) => (i === existing) ? { ...i, quantity: i.quantity + 1 } : i);
       }
-      return [...(prev || []), { product, variant_id: variantId, quantity: 1, selectedToppings: selectedTops }];
+      // Different note = new cart item
+      return [...(prev || []), { product, variant_id: variantId, quantity: 1, selectedToppings: selectedTops, note: note || undefined }];
     });
   }, []);
 
@@ -382,6 +396,9 @@ export default function POSPage() {
       setActiveProduct(p);
       setSelectedVariant(p.variants?.[0] || null);
       setSelectedToppings({});
+      setProductNote("");
+      setIceLevel(null);
+      setSugarLevel(null);
     }
   }, [addToCart]);
 
@@ -402,11 +419,42 @@ export default function POSPage() {
           for (let i = 0; i < qty; i++) topsArr.push(t);
         }
       });
-      addToCart(activeProduct, selectedVariant?.id, topsArr);
+      
+      // Build note from ice/sugar levels (default: Bình thường)
+      let note = '';
+      if (!iceLevel) {
+        note = 'Đá: Bình thường';
+      } else {
+        let iceLabel = iceLevel;
+        if (iceLevel === '100%') iceLabel = 'Đá: Bình thường';
+        else if (iceLevel === '30%') iceLabel = 'Đá: Ít đá';
+        else if (iceLevel === '0%') iceLabel = 'Đá: Không đá';
+        note = iceLabel;
+      }
+      if (!sugarLevel) {
+        note = `${note}, Đường: Bình thường`;
+      } else {
+        let sugarLabel = sugarLevel;
+        if (sugarLevel === '100%') sugarLabel = 'Đường: Ngọt nhiều';
+        else if (sugarLevel === '70%') sugarLabel = 'Đường: Bình thường';
+        else if (sugarLevel === '30%') sugarLabel = 'Đường: Ít ngọt';
+        else if (sugarLevel === '0%') sugarLabel = 'Đường: Không đường';
+        note = note ? `${note}, ${sugarLabel}` : sugarLabel;
+      }
+      // Add custom note if exists
+      if (productNote) {
+        note = `${note}, Ghi chú: ${productNote}`;
+      }
+      
+      addToCart(activeProduct, selectedVariant?.id, topsArr, note || undefined);
       setActiveProduct(null);
       setSelectedVariant(null);
+      setSelectedToppings({});
+      setProductNote("");
+      setIceLevel(null);
+      setSugarLevel(null);
     }
-  }, [activeProduct, selectedVariant, selectedToppings, toppings, addToCart]);
+  }, [activeProduct, selectedVariant, selectedToppings, toppings, addToCart, productNote, iceLevel, sugarLevel]);
 
   const totalAmount = useMemo(() => cart.reduce((s, i) => {
     if (i.isExisting) return s;
@@ -432,7 +480,8 @@ export default function POSPage() {
         product_id: i.product.id,
         variant_id: i.variant_id,
         quantity: i.quantity,
-        topping_ids: i.selectedToppings?.map(t => t.id)
+        topping_ids: i.selectedToppings?.map(t => t.id),
+        note: i.note
       }));
 
       let order;
@@ -548,8 +597,8 @@ export default function POSPage() {
                 <select
                   value={selectedBranchId}
                   onChange={(e) => setSelectedBranchId(e.target.value)}
-                  disabled={!!activeOrderId || currentUser?.role === 'ADMIN'}
-                  style={{ background: "none", border: "none", fontSize: 13, fontWeight: 700, color: "var(--text-secondary)", outline: "none", cursor: "pointer", opacity: (activeOrderId || currentUser?.role === 'ADMIN') ? 0.6 : 1 }}
+                  disabled={currentUser?.role !== 'ADMIN'}
+                  style={{ background: "none", border: "none", fontSize: 13, fontWeight: 700, color: "var(--text-secondary)", outline: "none", cursor: "pointer", opacity: currentUser?.role !== 'ADMIN' ? 0.6 : 1 }}
                 >
                   {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
@@ -626,18 +675,25 @@ export default function POSPage() {
             {cart.map((item, idx) => {
               const variant = item.product?.variants?.find(v => v.id === item.variant_id);
               return (
-                <div key={idx} style={{ display: "flex", gap: 16, marginBottom: 16, borderBottom: "1px solid var(--border-light)", paddingBottom: 16, alignItems: "center", opacity: item.isExisting ? 0.7 : 1 }}>
+<div key={idx} style={{ display: "flex", gap: 12, marginBottom: 18, borderBottom: "1px solid var(--border-light)", paddingBottom: 18, alignItems: "flex-start", opacity: item.isExisting ? 0.7 : 1 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <p style={{ fontWeight: 800, fontSize: 15 }}>{item.product.name_vi} {variant && `(${variant.size})`}</p>
+                      <p style={{ fontWeight: 800, fontSize: 17 }}>{item.product.name_vi} {variant && `(${variant.size})`}</p>
                       {item.isExisting && (
-                        <span style={{ fontSize: 9, fontWeight: 900, background: "var(--bg-primary)", color: "var(--text-muted)", padding: "2px 6px", borderRadius: 4, border: "1px solid var(--border)" }}>ĐÃ PHỤC VỤ</span>
+                        <span style={{ fontSize: 10, fontWeight: 900, background: "var(--bg-primary)", color: "var(--text-muted)", padding: "2px 6px", borderRadius: 4, border: "1px solid var(--border)" }}>ĐÃ PHỤC VỤ</span>
                       )}
                     </div>
                     {(item.selectedToppings || []).length > 0 && (
-                      <p style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 600 }}>
+                      <p style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600, marginTop: 2 }}>
                         + {Object.entries(item.selectedToppings?.reduce((acc: any, t) => { acc[t.name] = (acc[t.name] || 0) + 1; return acc; }, {}) || {}).map(([name, qty]) => `${name} x${qty}`).join(', ')}
                       </p>
+                    )}
+                    {item.note && (
+                      <div style={{ fontSize: 12, color: "var(--accent)", fontWeight: 700, marginTop: 6 }}>
+                        {item.note.split(', ').map((part: string, idx: number) => (
+                          <div key={idx}>- {part}</div>
+                        ))}
+                      </div>
                     )}
                   </div>
                   {!item.isExisting ? (
@@ -656,47 +712,46 @@ export default function POSPage() {
 
           {/* Billing Area */}
           <div style={{ padding: "32px 28px", background: "var(--bg-primary)", borderTop: "1px solid var(--border)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-              <span style={{ fontWeight: 800, fontSize: 14, color: "var(--text-secondary)" }}>TỔNG CỘNG</span>
-              <span style={{ fontWeight: 800, fontSize: 15 }}>{formatVND(totalAmount)}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ fontWeight: 700, fontSize: 12, color: "var(--text-secondary)" }}>TỔNG CỘNG</span>
+              <span style={{ fontWeight: 700, fontSize: 13 }}>{formatVND(totalAmount)}</span>
             </div>
             
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <span style={{ fontWeight: 800, fontSize: 14, color: "var(--text-secondary)" }}>GIẢM GIÁ</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <span style={{ fontWeight: 700, fontSize: 12, color: "var(--text-secondary)" }}>GIẢM GIÁ</span>
               <input 
                 type="number" 
                 value={discount || ""} 
                 onChange={(e) => setDiscount(Number(e.target.value))}
                 placeholder="0"
-                style={{ width: 120, textAlign: "right", padding: "8px 12px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13, fontWeight: 800, outline: "none" }}
+                style={{ width: 80, textAlign: "right", padding: "6px 10px", borderRadius: 6, border: "1px solid var(--border)", fontSize: 12, fontWeight: 700, outline: "none" }}
               />
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 24, paddingTop: 16, borderTop: "1px dashed var(--border)" }}>
-              <span style={{ fontWeight: 900, fontSize: 18 }}>THANH TOÁN</span>
-              <span style={{ fontWeight: 900, fontSize: 26, color: "var(--accent)" }}>{formatVND(finalAmount)}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, paddingTop: 12, borderTop: "1px dashed var(--border)" }}>
+              <span style={{ fontWeight: 800, fontSize: 14 }}>THANH TOÁN</span>
+              <span style={{ fontWeight: 900, fontSize: 18, color: "var(--accent)" }}>{formatVND(finalAmount)}</span>
             </div>
 
-            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
               <button
                 onClick={() => setOrderType("TAKEAWAY")}
                 disabled={!!activeOrderId}
-                style={{ flex: 1, padding: "12px", borderRadius: 12, fontWeight: 900, fontSize: 13, border: orderType === "TAKEAWAY" ? "2px solid var(--accent)" : "1px solid var(--border)", background: orderType === "TAKEAWAY" ? "var(--accent-light)" : "white", color: orderType === "TAKEAWAY" ? "var(--accent)" : "black", opacity: activeOrderId && orderType !== "TAKEAWAY" ? 0.5 : 1 }}
+                style={{ flex: 1, padding: "10px", borderRadius: 10, fontWeight: 800, fontSize: 12, border: orderType === "TAKEAWAY" ? "2px solid var(--accent)" : "1px solid var(--border)", background: orderType === "TAKEAWAY" ? "var(--accent-light)" : "white", color: orderType === "TAKEAWAY" ? "var(--accent)" : "black", opacity: activeOrderId && orderType !== "TAKEAWAY" ? 0.5 : 1 }}
               >
                 MANG ĐI
               </button>
               <button
-                onClick={() => { setOrderType("DINE_IN"); setIsCartOpen(true); }}
-                disabled={!!activeOrderId}
-                style={{ flex: 1, padding: "12px", borderRadius: 12, fontWeight: 900, fontSize: 13, border: orderType === "DINE_IN" ? "2px solid var(--accent)" : "1px solid var(--border)", background: orderType === "DINE_IN" ? "var(--accent-light)" : "white", color: orderType === "DINE_IN" ? "var(--accent)" : "black", opacity: activeOrderId && orderType !== "TAKEAWAY" ? 0.5 : 1 }}
+                onClick={() => { if (!activeOrderId && selectedTableId) { setSelectedTableId(null); } else { setOrderType("DINE_IN"); setIsCartOpen(true); }}}
+                style={{ flex: 1, padding: "10px", borderRadius: 10, fontWeight: 800, fontSize: 12, border: orderType === "DINE_IN" ? "2px solid var(--accent)" : "1px solid var(--border)", background: orderType === "DINE_IN" ? "var(--accent-light)" : "white", color: orderType === "DINE_IN" ? "var(--accent)" : "black", opacity: activeOrderId ? 0.5 : 1, cursor: "pointer" }}
               >
-                {activeOrderId ? "ĐANG PHỤC VỤ" : "TẠI CHỖ"} {selectedTableId && `(${tables?.find(t => t.id === selectedTableId)?.name || "Bàn"})`}
+                {activeOrderId ? "ĐANG PHỤC VỤ" : !selectedTableId ? "TẠI CHỖ" : "TẠI CHỖ"} {selectedTableId && <span style={{ color: "var(--accent)", fontSize: 10 }}>({tables?.find(t => t.id === selectedTableId)?.name || "Bàn"})</span>}
               </button>
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-              <p style={{ fontSize: 11, fontWeight: 900, color: "var(--text-muted)", marginBottom: 12, letterSpacing: 0.5 }}>PHƯƠNG THỨC THANH TOÁN</p>
-              <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ marginBottom: 12 }}>
+              <p style={{ fontSize: 10, fontWeight: 900, color: "var(--text-muted)", marginBottom: 8, letterSpacing: 0.5 }}>PHƯƠNG THỨC THANH TOÁN</p>
+              <div style={{ display: "flex", gap: 6 }}>
                 {[
                   { id: 'CASH', label: 'TIỀN MẶT' },
                   { id: 'BANK_TRANSFER', label: 'CHUYỂN KHOẢN' },
@@ -705,7 +760,7 @@ export default function POSPage() {
                     key={m.id}
                     onClick={() => setPaymentMethod(m.id as PaymentMethod)}
                     style={{
-                      flex: 1, padding: "14px 4px", borderRadius: 12, fontSize: 12, fontWeight: 800,
+                      flex: 1, padding: "10px 4px", borderRadius: 10, fontSize: 11, fontWeight: 700,
                       border: paymentMethod === m.id ? "2px solid var(--accent)" : "1px solid var(--border)",
                       background: paymentMethod === m.id ? "var(--accent-light)" : "white",
                       color: paymentMethod === m.id ? "var(--accent)" : "var(--text-secondary)",
@@ -727,8 +782,8 @@ export default function POSPage() {
 
       {/* Product Options Modal (Size + Toppings) */}
       {activeProduct && (
-        <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, backdropFilter: "blur(8px)" }}>
-          <div style={{ background: "white", padding: 32, borderRadius: 32, maxWidth: 500, width: "95%", boxShadow: "var(--shadow-lg)" }} className="animate-fade-in">
+        <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, backdropFilter: "blur(8px)" }} onClick={() => setActiveProduct(null)}>
+          <div style={{ background: "white", padding: 32, borderRadius: 32, maxWidth: 500, width: "95%", boxShadow: "var(--shadow-lg)" }} className="animate-fade-in" onClick={(e) => e.stopPropagation()}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <div>
                 <h3 style={{ fontSize: 22, fontWeight: 900 }}>{activeProduct.name_vi}</h3>
@@ -756,13 +811,66 @@ export default function POSPage() {
               </div>
             )}
 
+            {/* Ice Level */}
+            <div style={{ marginBottom: 20 }}>
+              <p style={{ fontWeight: 900, fontSize: 13, marginBottom: 12, color: "var(--text-muted)" }}>ĐÁ</p>
+              <div style={{ display: "flex", gap: 8 }}>
+                {[
+                  { id: '0%', label: 'Không đá' },
+                  { id: '30%', label: 'Ít đá' },
+                  { id: '100%', label: 'Bình thường' },
+                ].map(lvl => (
+                  <button
+                    key={lvl.id}
+                    onClick={() => setIceLevel(iceLevel === lvl.id ? null : lvl.id)}
+                    style={{ flex: 1, padding: "10px 4px", borderRadius: 12, fontSize: 11, fontWeight: 800, border: iceLevel === lvl.id ? "2px solid var(--accent)" : "1px solid var(--border)", background: iceLevel === lvl.id ? "var(--accent-light)" : "white", color: iceLevel === lvl.id ? "var(--accent)" : "var(--text-primary)" }}
+                  >
+                    {lvl.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sugar Level */}
+            <div style={{ marginBottom: 20 }}>
+              <p style={{ fontWeight: 900, fontSize: 13, marginBottom: 12, color: "var(--text-muted)" }}>ĐƯỜNG</p>
+              <div style={{ display: "flex", gap: 8 }}>
+                {[
+                  { id: '0%', label: 'Không đường' },
+                  { id: '30%', label: 'Ít ngọt' },
+                  { id: '70%', label: 'Bình thường' },
+                  { id: '100%', label: 'Ngọt nhiều' },
+                ].map(lvl => (
+                  <button
+                    key={lvl.id}
+                    onClick={() => setSugarLevel(sugarLevel === lvl.id ? null : lvl.id)}
+                    style={{ flex: 1, padding: "10px 4px", borderRadius: 12, fontSize: 11, fontWeight: 800, border: sugarLevel === lvl.id ? "2px solid var(--accent)" : "1px solid var(--border)", background: sugarLevel === lvl.id ? "var(--accent-light)" : "white", color: sugarLevel === lvl.id ? "var(--accent)" : "var(--text-primary)" }}
+                  >
+                    {lvl.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Product Note */}
+            <div style={{ marginBottom: 24 }}>
+              <p style={{ fontWeight: 900, fontSize: 13, marginBottom: 12, color: "var(--text-muted)" }}>GHI CHÚ KHÁCH</p>
+              <input
+                type="text"
+                placeholder="VD: Không dùng ống hút, ly giấy..."
+                value={productNote}
+                onChange={(e) => setProductNote(e.target.value)}
+                style={{ width: "100%", padding: "14px 16px", borderRadius: 14, border: "1px solid var(--border)", fontSize: 14, fontWeight: 700, outline: "none" }}
+              />
+            </div>
+
             {/* Topping Selection */}
             <div style={{ marginBottom: 32 }}>
-              <p style={{ fontWeight: 900, fontSize: 13, marginBottom: 12, color: "var(--text-muted)" }}>TOÀN BỘ TOPPING</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 240, overflowY: "auto", paddingRight: 8 }} className="custom-scroll">
+              <p style={{ fontWeight: 900, fontSize: 13, marginBottom: 12, color: "var(--text-muted)" }}>TOPPING THÊM</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 180, overflowY: "auto", paddingRight: 8 }} className="custom-scroll">
                 {toppings.map(t => (
                   <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderRadius: 14, border: (selectedToppings[t.id] || 0) > 0 ? "1px solid var(--accent)" : "1px solid var(--border)", background: (selectedToppings[t.id] || 0) > 0 ? "var(--bg-primary)" : "white" }}>
-                    <span style={{ fontWeight: 700 }}>{t.name} <span style={{ color: "var(--accent)", fontSize: 12 }}>({formatVND(t.price)})</span></span>
+                    <span style={{ fontWeight: 700 }}>{t.name} <span style={{ color: "var(--accent)", fontSize: 12 }}>(+{formatVND(t.price)})</span></span>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <button onClick={() => updateToppingQty(t.id, -1)} style={{ width: 28, height: 28, borderRadius: "50%", background: "white", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center" }}><HiMinus size={12} /></button>
                       <span style={{ fontWeight: 900, fontSize: 14 }}>{selectedToppings[t.id] || 0}</span>
@@ -782,8 +890,8 @@ export default function POSPage() {
 
       {/* Table Selection Modal */}
       {orderType === "DINE_IN" && !selectedTableId && isCartOpen && (
-        <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.6)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)" }}>
-          <div style={{ background: "white", padding: 32, borderRadius: 28, width: "90%", maxWidth: 600 }}>
+        <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.6)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)" }} onClick={() => setOrderType("TAKEAWAY")}>
+          <div style={{ background: "white", padding: 32, borderRadius: 28, width: "90%", maxWidth: 600 }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <h3 style={{ fontSize: 20, fontWeight: 900 }}>CHỌN BÀN PHỤC VỤ</h3>
               <button onClick={() => setOrderType("TAKEAWAY")} style={{ background: "none", border: "none", color: "var(--text-muted)", fontWeight: 700, cursor: "pointer" }}>HỦY</button>
@@ -811,8 +919,8 @@ export default function POSPage() {
 
       {/* Payment Pending Modal (Bank Transfer) */}
       {paymentPending && (
-        <div style={{ position: "fixed", top: 0, left: 0, width: "100dvw", height: "100dvh", background: "rgba(0,0,0,0.8)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ background: "white", padding: "24px", borderRadius: 32, width: "100%", maxWidth: 400, textAlign: "center", maxHeight: "90dvh", overflowY: "auto" }}>
+        <div style={{ position: "fixed", top: 0, left: 0, width: "100dvw", height: "100dvh", background: "rgba(0,0,0,0.8)", zIndex: 600, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setPaymentPending(null)}>
+          <div style={{ background: "white", padding: "24px", borderRadius: 32, width: "100%", maxWidth: 400, textAlign: "center", maxHeight: "90dvh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ fontSize: 20, fontWeight: 900, marginBottom: 8 }}>XÁC NHẬN THANH TOÁN</h3>
             <p style={{ color: "var(--text-secondary)", fontSize: 13, fontWeight: 700, marginBottom: 20 }}>Vui lòng quét mã QR và xác nhận đã nhận tiền</p>
 
@@ -842,8 +950,8 @@ export default function POSPage() {
 
       {/* Checkout Success Modal */}
       {orderSuccess && (
-        <div style={{ position: "fixed", top: 0, left: 0, width: "100dvw", height: "100dvh", background: "rgba(0,0,0,0.8)", zIndex: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ background: "white", padding: "32px", borderRadius: 32, width: "100%", maxWidth: 400, textAlign: "center" }}>
+        <div style={{ position: "fixed", top: 0, left: 0, width: "100dvw", height: "100dvh", background: "rgba(0,0,0,0.8)", zIndex: 700, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setOrderSuccess(null)}>
+          <div style={{ background: "white", padding: "32px", borderRadius: 32, width: "100%", maxWidth: 400, textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
             <div style={{ width: 64, height: 64, background: "rgba(34, 197, 94, 0.1)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
               <HiCheckCircle size={40} color="var(--success)" />
             </div>

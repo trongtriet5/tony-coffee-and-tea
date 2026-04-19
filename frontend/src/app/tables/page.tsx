@@ -424,6 +424,13 @@ export default function TablesManagementPage() {
                                         + Topping: {item.toppings.map((t: any) => t.topping?.name || t.name).filter(Boolean).join(', ')}
                                       </div>
                                     )}
+                                    {item.note && (
+                                      <div style={{ fontSize: 10, color: "var(--accent)", fontWeight: 700, paddingLeft: 8, marginTop: 4 }}>
+                                        {item.note.split(', ').map((part: string, idx: number) => (
+                                          <div key={idx}>- {part}</div>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
                               </div>

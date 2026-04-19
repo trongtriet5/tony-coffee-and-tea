@@ -398,8 +398,8 @@ const handleExportExcel = async () => {
 
             {/* ORDER DETAILS MODAL */}
             {selectedOrder && (
-               <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-                  <div style={{ background: "white", borderRadius: 32, width: "100%", maxWidth: 500, overflow: "hidden", display: "flex", flexDirection: "column" }} className="animate-fade-in">
+               <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setSelectedOrder(null)}>
+                  <div style={{ background: "white", borderRadius: 32, width: "100%", maxWidth: 500, overflow: "hidden", display: "flex", flexDirection: "column" }} className="animate-fade-in" onClick={(e) => e.stopPropagation()}>
                      <div style={{ padding: "32px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
                            <h3 style={{ fontSize: 18, fontWeight: 900 }}>Chi tiết đơn hàng</h3>
@@ -416,24 +416,31 @@ const handleExportExcel = async () => {
                         <div style={{ marginBottom: 32 }}>
                            <p style={{ fontSize: 11, fontWeight: 900, color: "var(--text-muted)", marginBottom: 16 }}>SẢN PHẨM ĐÃ CHỌN</p>
                            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                              {(selectedOrder.items || []).map((item, i) => (
-                                 <div key={i} style={{ display: "flex", justifyContent: "space-between" }}>
-                                    <div style={{ flex: 1 }}>
-                                       <div style={{ display: "flex", gap: 12 }}>
-                                          <span style={{ fontWeight: 900, fontSize: 14, color: "var(--accent)" }}>{item.quantity}x</span>
-                                          <div>
-                                             <p style={{ fontWeight: 800, fontSize: 14 }}>{(item as any).product?.name_vi || "Món"}</p>
-                                             {item.toppings && item.toppings.length > 0 && (
-                                                <p style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600 }}>
-                                                   + {item.toppings.map(t => t.name).join(", ")}
-                                                </p>
-                                             )}
-                                          </div>
-                                       </div>
-                                    </div>
-                                    <span style={{ fontWeight: 800, fontSize: 14 }}>{formatVND(item.subtotal)}</span>
-                                 </div>
-                              ))}
+{(selectedOrder.items || []).map((item, i) => (
+                                  <div key={i} style={{ display: "flex", justifyContent: "space-between" }}>
+                                     <div style={{ flex: 1 }}>
+                                        <div style={{ display: "flex", gap: 12 }}>
+                                           <span style={{ fontWeight: 900, fontSize: 14, color: "var(--accent)" }}>{item.quantity}x</span>
+                                           <div>
+                                              <p style={{ fontWeight: 800, fontSize: 14 }}>{(item as any).product?.name_vi || "Món"}</p>
+                                              {item.toppings && item.toppings.length > 0 && (
+                                                 <p style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600 }}>
+                                                    + {item.toppings.map(t => t.name).join(", ")}
+                                                 </p>
+                                              )}
+{(item as any).note && (
+                                                  <div style={{ fontSize: 10, color: "var(--accent)", fontWeight: 700, marginTop: 4 }}>
+                                                     {(item as any).note.split(', ').map((part: string, idx: number) => (
+                                                       <div key={idx}>- {part}</div>
+                                                     ))}
+                                                  </div>
+                                               )}
+                                           </div>
+                                        </div>
+                                     </div>
+                                     <span style={{ fontWeight: 800, fontSize: 14 }}>{formatVND(item.subtotal)}</span>
+                                  </div>
+                               ))}
                            </div>
                         </div>
 
@@ -517,10 +524,17 @@ const handleExportExcel = async () => {
                         <tbody style={{ fontSize: "11px" }}>
                            {(selectedOrder.items || []).map((item, i) => (
                               <tr key={i}>
-                                 <td style={{ padding: "4px 0" }}>
-                                    {i + 1}. {item.product?.name_vi || "Món"}
-                                    {item.toppings && item.toppings.map(t => <div key={t.name} style={{ fontSize: "9px" }}>+ {t.name}</div>)}
-                                 </td>
+<td style={{ padding: "4px 0" }}>
+                                     {i + 1}. {item.product?.name_vi || "Món"}
+                                     {item.toppings && item.toppings.map(t => <div key={t.name} style={{ fontSize: "9px" }}>+ {t.name}</div>)}
+                                     {(item as any).note && (
+                                     <div style={{ fontSize: "9px" }}>
+                                        {(item as any).note.split(', ').map((part: string, idx: number) => (
+                                          <div key={idx}>- {part}</div>
+                                        ))}
+                                     </div>
+                                   )}
+                                  </td>
                                  <td style={{ textAlign: "center" }}>{item.quantity}</td>
                                  <td style={{ textAlign: "right" }}>{item.subtotal.toLocaleString()}</td>
                               </tr>

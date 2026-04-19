@@ -246,19 +246,13 @@ export default function DashboardPage() {
                       label: 'Doanh thu',
                       data: stats.revenue_by_day.map(d => d.revenue),
                       borderColor: '#346739',
-                      backgroundColor: (context: any) => {
-                        const ctx = context.chart.ctx;
-                        const gradient = ctx.createLinearGradient(0, 0, 0, 380);
-                        gradient.addColorStop(0, 'rgba(52, 103, 57, 0.4)');
-                        gradient.addColorStop(1, 'rgba(52, 103, 57, 0)');
-                        return gradient;
-                      },
+                      backgroundColor: 'rgba(52, 103, 57, 0.25)',
                       borderWidth: 3,
                       pointRadius: isMobile ? 0 : 4,
                       pointBackgroundColor: '#fff',
                       pointBorderColor: '#346739',
                       pointHoverRadius: 6,
-                      tension: 0.5
+                      tension: 0.4
                     }]
                   }}
                   options={{
@@ -274,7 +268,7 @@ export default function DashboardPage() {
                         offset: 8,
                         font: { weight: 900, size: 11 },
                         formatter: (v: any) => v > 0 ? formatK(v) : '',
-                        display: stats.revenue_by_day.length <= 20 ? true : false
+                        display: stats.revenue_by_day.length <= 20
                       },
                       tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', padding: 12, callbacks: { label: (c: any) => formatVND(c.raw as number) } }
                     },
@@ -437,15 +431,7 @@ export default function DashboardPage() {
                   maintainAspectRatio: false,
                   plugins: {
                     legend: { display: false },
-                    datalabels: {
-                      color: '#666',
-                      anchor: 'end',
-                      align: 'top',
-                      offset: 4,
-                      font: { weight: 700, size: 10 },
-                      formatter: (v: any) => v > 0 ? v : '',
-                      display: true
-                    }
+                    tooltip: { enabled: true },
                   },
                   scales: {
                     y: { 
