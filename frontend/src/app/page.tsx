@@ -222,6 +222,7 @@ export default function POSPage() {
   const [productNote, setProductNote] = useState("");
   const [iceLevel, setIceLevel] = useState<string | null>(null);
   const [sugarLevel, setSugarLevel] = useState<string | null>(null);
+  const [productQty, setProductQty] = useState(1);
 
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<Order | null>(null);
@@ -399,6 +400,7 @@ export default function POSPage() {
       setProductNote("");
       setIceLevel(null);
       setSugarLevel(null);
+      setProductQty(1);
     }
   }, [addToCart]);
 
@@ -446,15 +448,19 @@ export default function POSPage() {
         note = `${note}, Ghi chú: ${productNote}`;
       }
       
-      addToCart(activeProduct, selectedVariant?.id, topsArr, note || undefined);
+      // Add product with quantity
+      for (let i = 0; i < productQty; i++) {
+        addToCart(activeProduct, selectedVariant?.id, topsArr, note || undefined);
+      }
       setActiveProduct(null);
       setSelectedVariant(null);
       setSelectedToppings({});
       setProductNote("");
       setIceLevel(null);
       setSugarLevel(null);
+      setProductQty(1);
     }
-  }, [activeProduct, selectedVariant, selectedToppings, toppings, addToCart, productNote, iceLevel, sugarLevel]);
+  }, [activeProduct, selectedVariant, selectedToppings, toppings, addToCart, productNote, iceLevel, sugarLevel, productQty]);
 
   const totalAmount = useMemo(() => cart.reduce((s, i) => {
     if (i.isExisting) return s;
@@ -785,9 +791,9 @@ export default function POSPage() {
         <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, backdropFilter: "blur(8px)" }} onClick={() => setActiveProduct(null)}>
           <div style={{ background: "white", padding: 32, borderRadius: 32, maxWidth: 500, width: "95%", boxShadow: "var(--shadow-lg)" }} className="animate-fade-in" onClick={(e) => e.stopPropagation()}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-              <div>
-                <h3 style={{ fontSize: 22, fontWeight: 900 }}>{activeProduct.name_vi}</h3>
-                <p style={{ color: "var(--text-secondary)", fontWeight: 700 }}>{activeProduct.name_en}</p>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: 22, fontWeight: 900 }}>{activeProduct.name_vi}{activeProduct.name_en && activeProduct.name_en !== activeProduct.name_vi ? ` (${activeProduct.name_en})` : ''}</h3>
+                {activeProduct.name_en && activeProduct.name_en !== activeProduct.name_vi && <p style={{ color: "var(--text-secondary)", fontWeight: 700 }}>{activeProduct.name_en}</p>}
               </div>
               <button onClick={() => setActiveProduct(null)} style={{ background: "#f3f4f6", border: "none", width: 44, height: 44, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}><HiX size={24} /></button>
             </div>
@@ -881,8 +887,18 @@ export default function POSPage() {
               </div>
             </div>
 
+            {/* Quantity Selector */}
+            <div style={{ marginBottom: 16 }}>
+              <p style={{ fontWeight: 900, fontSize: 13, marginBottom: 12, color: "var(--text-muted)" }}>SỐ LƯỢNG</p>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+                <button onClick={() => setProductQty(Math.max(1, productQty - 1))} style={{ width: 44, height: 44, borderRadius: 12, border: "1px solid var(--border)", background: "white", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HiMinus size={18} /></button>
+                <span style={{ fontSize: 24, fontWeight: 900, minWidth: 50, textAlign: "center" }}>{productQty}</span>
+                <button onClick={() => setProductQty(productQty + 1)} style={{ width: 44, height: 44, borderRadius: 12, border: "1px solid var(--border)", background: "var(--gold-gradient)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><HiPlus size={18} /></button>
+              </div>
+            </div>
+
             <button onClick={confirmAddToCart} className="btn-primary" style={{ width: "100%", padding: 18, fontSize: 16 }}>
-              THÊM VÀO GIỎ • {formatVND((selectedVariant?.price || 0) + toppings.reduce((s, t) => s + t.price * (selectedToppings[t.id] || 0), 0))}
+              THÊM VÀO GIỎ • {formatVND(((selectedVariant?.price || 0) + toppings.reduce((s, t) => s + t.price * (selectedToppings[t.id] || 0), 0)) * productQty)}
             </button>
           </div>
         </div>

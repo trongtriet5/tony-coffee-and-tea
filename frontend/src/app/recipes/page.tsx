@@ -43,6 +43,9 @@ export default function RecipePage() {
   const [batchMode, setBatchMode] = useState(false);
   const [batchMaterials, setBatchMaterials] = useState<{ material_id: string; quantity: string }[]>([{ material_id: "", quantity: "" }]);
 
+  // Delete confirmation modal
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+
   useEffect(() => {
     if (currentUser) {
       if (currentUser.role?.toUpperCase() === 'MANAGER') setActiveTab('product');
@@ -197,36 +200,28 @@ export default function RecipePage() {
     }
   };
 
-  const handleDeleteRecipe = async (id: string) => {
-    const Swal = (window as any).Swal;
-    if (!Swal) return;
+  const handleDeleteRecipe = (id: string) => {
+    const recipe = recipes.find(r => r.id === id);
+    const name = recipe?.material?.name || 'công thức này';
+    setDeleteConfirm({ id, name });
+  };
 
-    const result = await Swal.fire({
-      title: 'Xác nhận xóa?',
-      text: "Bạn chắc chắn muốn xóa công thức này?",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: 'var(--accent)',
-      cancelButtonColor: 'var(--text-muted)',
-      confirmButtonText: 'Đồng ý',
-      cancelButtonText: 'Hủy'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        setLoading(true);
-        if (activeTab === "product") {
-          await deleteProductRecipe(id);
-          loadProductRecipes(selectedVariantId);
-        } else {
-          await deleteToppingRecipe(id);
-          loadToppingRecipes(selectedToppingId);
-        }
-        toastSuccess("Xóa công thức thành công!");
-      } catch (error) {
-        toastError("Có lỗi xảy ra khi xóa công thức");
-      } finally { setLoading(false); }
-    }
+  const confirmDeleteRecipe = async () => {
+    if (!deleteConfirm) return;
+    setLoading(true);
+    try {
+      if (activeTab === "product") {
+        await deleteProductRecipe(deleteConfirm.id);
+        loadProductRecipes(selectedVariantId);
+      } else {
+        await deleteToppingRecipe(deleteConfirm.id);
+        loadToppingRecipes(selectedToppingId);
+      }
+      toastSuccess("Xóa công thức thành công!");
+      setDeleteConfirm(null);
+    } catch (error) {
+      toastError("Có lỗi xảy ra khi xóa công thức");
+    } finally { setLoading(false); }
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -448,7 +443,7 @@ export default function RecipePage() {
                               )}
                             </div>
                           </div>
-                          {currentUser?.role?.toUpperCase() === 'ADMIN' && (
+                          {(currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER') && (
                             <button onClick={() => handleDeleteRecipe(r.id)} style={{ background: "transparent", border: "none", color: "var(--danger)", cursor: "pointer" }} title="Xóa">
                               <HiTrash size={18} />
                             </button>
@@ -619,6 +614,25 @@ export default function RecipePage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }} onClick={() => setDeleteConfirm(null)}>
+          <div style={{ background: "white", borderRadius: 24, padding: 32, maxWidth: 400, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontSize: 20, fontWeight: 900, marginBottom: 12 }}>Xác nhận xóa?</h3>
+            <p style={{ fontSize: 15, color: "var(--text-secondary)", marginBottom: 24 }}>
+              Bạn chắc chắn muốn xóa công thức <strong>{deleteConfirm.name}</strong>?
+            </p>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: 14, borderRadius: 12, border: "1px solid var(--border)", background: "white", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>HỦY</button>
+              <button onClick={confirmDeleteRecipe} disabled={loading} style={{ flex: 1, padding: 14, borderRadius: 12, border: "none", background: "var(--danger)", color: "white", fontSize: 14, fontWeight: 800, cursor: "pointer", opacity: loading ? 0.6 : 1 }}>
+                {loading ? "Đang xóa..." : "XÓA"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  );
+);
 }
+

@@ -32,6 +32,9 @@ export default function MaterialsPage() {
   const [materialForm, setMaterialForm] = useState({ name: "", unit: "", cost_per_unit: "", stock_current: "", safety_stock: "" });
   const [transactionForm, setTransactionForm] = useState({ type: "IN" as const, quantity: "", note: "" });
 
+  // Delete confirmation modal
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 1024);
     checkMobile();
@@ -126,33 +129,24 @@ export default function MaterialsPage() {
     setMaterialForm({ name: m.name, unit: m.unit, cost_per_unit: m.cost_per_unit.toString(), stock_current: m.stock_current.toString(), safety_stock: m.safety_stock?.toString() || "" });
   };
 
-  const handleDeleteMaterial = async (id: string, e: React.MouseEvent) => {
+  const handleDeleteMaterial = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const Swal = (window as any).Swal;
-    if (!Swal) return;
+    const m = materials.find(m => m.id === id);
+    setDeleteConfirm({ id, name: m?.name || 'nguyên liệu này' });
+  };
 
-    const result = await Swal.fire({
-      title: 'Xác nhận xóa?',
-      text: "Bạn chắc chắn muốn xóa nguyên liệu này?",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: 'var(--danger)',
-      cancelButtonColor: 'var(--text-muted)',
-      confirmButtonText: 'Xóa',
-      cancelButtonText: 'Hủy'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        setLoading(true);
-        await optimisticDeleteMaterial(id);
-        toastSuccess("Xóa nguyên liệu thành công!");
-        if (selectedMaterialId === id) setSelectedMaterialId(null);
-        if (editingMaterialId === id) cancelEdit();
-      } catch (error) {
-        toastError("Có lỗi xảy ra khi xóa nguyên liệu");
-      } finally { setLoading(false); }
-    }
+  const confirmDeleteMaterial = async () => {
+    if (!deleteConfirm) return;
+    setLoading(true);
+    try {
+      await optimisticDeleteMaterial(deleteConfirm.id);
+      toastSuccess("Xóa nguyên liệu thành công!");
+      if (selectedMaterialId === deleteConfirm.id) setSelectedMaterialId(null);
+      if (editingMaterialId === deleteConfirm.id) cancelEdit();
+      setDeleteConfirm(null);
+    } catch (error) {
+      toastError("Có lỗi xảy ra khi xóa nguyên liệu");
+    } finally { setLoading(false); }
   };
 
   const cancelEdit = () => {
@@ -285,7 +279,16 @@ export default function MaterialsPage() {
                     return (
                       <div
                         key={m.id}
-                        onClick={() => { setSelectedMaterialId(isSelected ? null : m.id); setEditingMaterialId(null); }}
+                        onClick={() => { 
+                          if (!isSelected) { 
+                            setSelectedMaterialId(m.id); 
+                            setEditingMaterialId(m.id);
+                            setMaterialForm({ name: m.name, unit: m.unit, cost_per_unit: m.cost_per_unit.toString(), stock_current: m.stock_current.toString(), safety_stock: m.safety_stock?.toString() || "" });
+                          } else {
+                            setSelectedMaterialId(null);
+                          }
+                          setEditingMaterialId(null); 
+                        }}
                         style={{
                           padding: 16, borderRadius: 16, border: `2px solid ${isSelected ? "var(--accent)" : "transparent"}`,
                           background: isSelected ? "var(--bg-primary)" : "white", cursor: "pointer", transition: "0.2s",
@@ -296,7 +299,7 @@ export default function MaterialsPage() {
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 900, marginBottom: 4, color: "var(--text-primary)" }}>{m.name}</div>
                           <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", display: "flex", gap: 12 }}>
-                            <span>Kho: <span style={{ color: isLowStock ? "var(--danger)" : "var(--success)", fontWeight: 900 }}>{m.stock_current.toFixed(2)} {m.unit}</span></span>
+                            <span>Kho: <span style={{ color: isLowStock ? "var(--danger)" : "var(--success)", fontWeight: 900 }}>{Math.round(m.stock_current).toLocaleString("vi-VN")} {m.unit}</span></span>
                             <span>Giá: {new Intl.NumberFormat('vi-VN').format(m.cost_per_unit)} ₫</span>
                           </div>
                         </div>
@@ -423,6 +426,24 @@ export default function MaterialsPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }} onClick={() => setDeleteConfirm(null)}>
+          <div style={{ background: "white", borderRadius: 24, padding: 32, maxWidth: 400, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontSize: 20, fontWeight: 900, marginBottom: 12 }}>Xác nhận xóa?</h3>
+            <p style={{ fontSize: 15, color: "var(--text-secondary)", marginBottom: 24 }}>
+              Bạn chắc chắn muốn xóa <strong>{deleteConfirm.name}</strong>?
+            </p>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: 14, borderRadius: 12, border: "1px solid var(--border)", background: "white", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>HỦY</button>
+              <button onClick={confirmDeleteMaterial} disabled={loading} style={{ flex: 1, padding: 14, borderRadius: 12, border: "none", background: "var(--danger)", color: "white", fontSize: 14, fontWeight: 800, cursor: "pointer", opacity: loading ? 0.6 : 1 }}>
+                {loading ? "Đang xóa..." : "XÓA"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .spin { animation: spin 1s linear infinite; }

@@ -27,6 +27,10 @@ export default function ProductsManagementPage() {
   const [toppingForm, setToppingForm] = useState({ name: "", price: "", available: true });
   const [isMobile, setIsMobile] = useState(false);
 
+  // Delete confirmation modal
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'product' | 'topping'; id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -114,55 +118,31 @@ export default function ProductsManagementPage() {
   };
 
   const handleDeleteProduct = async (id: string) => {
-    const Swal = (window as any).Swal;
-    if (!Swal) return;
-
-    const result = await Swal.fire({
-      title: 'Xác nhận xóa?',
-      text: "Bạn chắc chắn muốn xóa món này? Tất cả công thức liên quan cũng sẽ bị xóa.",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: 'var(--accent)',
-      cancelButtonColor: 'var(--text-muted)',
-      confirmButtonText: 'Đồng ý',
-      cancelButtonText: 'Hủy'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        setLoading(true);
-        await optimisticDeleteProduct(id);
-        toastSuccess("Xóa món thành công!");
-      } catch (error: any) {
-        toastError(error.response?.data?.message || "Có lỗi xảy ra khi xóa món");
-      } finally { setLoading(false); }
-    }
+    const p = products.find(p => p.id === id);
+    setDeleteConfirm({ type: 'product', id, name: p?.name_vi || 'món này' });
   };
 
   const handleDeleteTopping = async (id: string) => {
-    const Swal = (window as any).Swal;
-    if (!Swal) return;
+    const t = toppings.find(t => t.id === id);
+    setDeleteConfirm({ type: 'topping', id, name: t?.name || 'topping này' });
+  };
 
-    const result = await Swal.fire({
-      title: 'Xác nhận xóa?',
-      text: "Bạn chắc chắn muốn xóa topping này?",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: 'var(--accent)',
-      cancelButtonColor: 'var(--text-muted)',
-      confirmButtonText: 'Đồng ý',
-      cancelButtonText: 'Hủy'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        setLoading(true);
-        await optimisticDeleteTopping(id);
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    setIsDeleting(true);
+    try {
+      if (deleteConfirm.type === 'product') {
+        await optimisticDeleteProduct(deleteConfirm.id);
+        toastSuccess("Xóa món thành công!");
+      } else {
+        await optimisticDeleteTopping(deleteConfirm.id);
         toastSuccess("Xóa topping thành công!");
-      } catch (error: any) {
-        toastError(error.response?.data?.message || "Có lỗi xảy ra khi xóa topping");
-      } finally { setLoading(false); }
-    }
+      }
+      setDeleteConfirm(null);
+    } catch (error: any) {
+      console.error("Delete error:", error);
+      toastError(error.response?.data?.message || error.message || "Có lỗi xảy ra khi xóa");
+    } finally { setIsDeleting(false); }
   };
 
   const startEditProduct = (p: Product) => {
@@ -439,6 +419,25 @@ export default function ProductsManagementPage() {
         </div>
 
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }} onClick={() => setDeleteConfirm(null)}>
+          <div style={{ background: "white", borderRadius: 24, padding: 32, maxWidth: 400, width: "90%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontSize: 20, fontWeight: 900, marginBottom: 12 }}>Xác nhận xóa?</h3>
+            <p style={{ fontSize: 15, color: "var(--text-secondary)", marginBottom: 24 }}>
+              Bạn chắc chắn muốn xóa <strong>{deleteConfirm.name}</strong>?
+              {deleteConfirm.type === 'product' && <><br />Tất cả công thức liên quan cũng sẽ bị xóa.</>}
+            </p>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: 14, borderRadius: 12, border: "1px solid var(--border)", background: "white", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>HỦY</button>
+              <button onClick={confirmDelete} disabled={isDeleting} style={{ flex: 1, padding: 14, borderRadius: 12, border: "none", background: "var(--danger)", color: "white", fontSize: 14, fontWeight: 800, cursor: "pointer", opacity: isDeleting ? 0.6 : 1 }}>
+                {isDeleting ? "Đang xóa..." : "XÓA"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .spin { animation: spin 1s linear infinite; }
