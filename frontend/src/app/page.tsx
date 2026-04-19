@@ -464,7 +464,11 @@ export default function POSPage() {
         }
         setCart([]); setDiscount(0); setIsCartOpen(false); setActiveOrderId(null); setOrderType("TAKEAWAY");
       }
-    } catch (err) { toastError("Lỗi hệ thống khi thanh toán"); } finally { setIsCheckingOut(false); }
+    } catch (err: any) { 
+      console.error('Checkout error:', err);
+      const msg = err?.response?.data?.message || err?.message || "Lỗi hệ thống khi thanh toán";
+      toastError(msg); 
+    } finally { setIsCheckingOut(false); }
   };
 
   const handlePrint = () => {
