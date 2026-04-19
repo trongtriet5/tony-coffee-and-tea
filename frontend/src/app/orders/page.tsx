@@ -428,9 +428,9 @@ const handleExportExcel = async () => {
                                                     + {item.toppings.map(t => t.name).join(", ")}
                                                  </p>
                                               )}
-{(item as any).note && (
+                                              {item.note && (
                                                   <div style={{ fontSize: 10, color: "var(--accent)", fontWeight: 700, marginTop: 4 }}>
-                                                     {(item as any).note.split(', ').map((part: string, idx: number) => (
+                                                     {item.note.split(', ').map((part: string, idx: number) => (
                                                        <div key={idx}>- {part}</div>
                                                      ))}
                                                   </div>
@@ -527,9 +527,9 @@ const handleExportExcel = async () => {
 <td style={{ padding: "4px 0" }}>
                                      {i + 1}. {item.product?.name_vi || "Món"}
                                      {item.toppings && item.toppings.map(t => <div key={t.name} style={{ fontSize: "9px" }}>+ {t.name}</div>)}
-                                     {(item as any).note && (
+                                     {item.note && (
                                      <div style={{ fontSize: "9px" }}>
-                                        {(item as any).note.split(', ').map((part: string, idx: number) => (
+                                        {item.note.split(', ').map((part: string, idx: number) => (
                                           <div key={idx}>- {part}</div>
                                         ))}
                                      </div>

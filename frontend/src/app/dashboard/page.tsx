@@ -350,14 +350,14 @@ export default function DashboardPage() {
               <div style={{ display: "flex", gap: 20, alignItems: "center", flexShrink: 0 }}>
                 {stats.transaction_count_by_hour.some(h => h.products > 0) && (
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#346739", flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-primary)" }}>Sản phẩm</span>
+                    <div style={{ width: 12, height: 12, borderRadius: 4, background: "#346739", flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>Sản phẩm</span>
                   </div>
                 )}
                 {stats.transaction_count_by_hour.some(h => h.toppings > 0) && (
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#9CA3AF", flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text-primary)" }}>Topping</span>
+                    <div style={{ width: 12, height: 12, borderRadius: 4, background: "#f59e0b", flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>Topping</span>
                   </div>
                 )}
               </div>
@@ -373,55 +373,45 @@ export default function DashboardPage() {
                   labels: stats.transaction_count_by_hour.map((h: any) => h.hour),
                   datasets: [
                     {
-                      type: 'line',
-                      label: 'Sản phẩm',
-                      data: stats.transaction_count_by_hour.map((h: any) => h.products),
-                      borderColor: '#346739',
-                      backgroundColor: 'rgba(52, 103, 57, 0.25)',
+                      type: 'line' as const,
+                      label: 'Xu hướng',
+                      data: stats.transaction_count_by_hour.map((h: any) => h.products + h.toppings),
+                      borderColor: 'rgba(52, 103, 57, 0.4)',
+                      backgroundColor: 'rgba(52, 103, 57, 0.1)',
                       fill: true,
+                      tension: 0.4,
+                      pointRadius: 4,
+                      pointBackgroundColor: '#fff',
+                      pointBorderColor: '#346739',
                       borderWidth: 2,
-                      pointRadius: 5,
-                      pointBackgroundColor: '#346739',
-                      pointBorderColor: '#fff',
-                      pointBorderWidth: 2,
-                      tension: 0.5,
-                      order: 0,
+                      datalabels: { display: false } // Hide labels for trend line to avoid duplicates
                     },
                     {
-                      type: 'bar',
                       label: 'Sản phẩm',
                       data: stats.transaction_count_by_hour.map((h: any) => h.products),
                       backgroundColor: '#346739',
                       borderRadius: 6,
-                      barPercentage: 0.6,
-                      categoryPercentage: 0.4,
-                      order: 1,
+                      barPercentage: 0.5,
+                      categoryPercentage: 0.7,
+                      datalabels: {
+                        anchor: 'center',
+                        align: 'center',
+                        color: '#fff', // White looks better inside the dark bar
+                      }
                     },
                     ...(stats.transaction_count_by_hour.some((h: any) => h.toppings > 0) ? [
                       {
-                        type: 'line',
                         label: 'Topping',
                         data: stats.transaction_count_by_hour.map((h: any) => h.toppings),
-                        borderColor: '#9CA3AF',
-                        backgroundColor: 'rgba(156, 163, 175, 0.2)',
-                        fill: true,
-                        borderWidth: 2,
-                        pointRadius: 5,
-                        pointBackgroundColor: '#9CA3AF',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
-                        tension: 0.5,
-                        order: 0,
-                      },
-                      {
-                        type: 'bar',
-                        label: 'Topping',
-                        data: stats.transaction_count_by_hour.map((h: any) => h.toppings),
-                        backgroundColor: '#e5e7eb',
+                        backgroundColor: '#f59e0b',
                         borderRadius: 6,
-                        barPercentage: 0.6,
-                        categoryPercentage: 0.4,
-                        order: 1,
+                        barPercentage: 0.5,
+                        categoryPercentage: 0.7,
+                        datalabels: {
+                          anchor: 'end',
+                          align: 'top',
+                          color: '#346739', // Dark color for label above the bar
+                        }
                       }
                     ] : []),
                   ]
@@ -429,19 +419,41 @@ export default function DashboardPage() {
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
+                  layout: { padding: { top: 24, bottom: 0, left: 0, right: 0 } },
                   plugins: {
                     legend: { display: false },
-                    tooltip: { enabled: true },
+                    tooltip: { 
+                      enabled: true,
+                      backgroundColor: '#1f2937',
+                      padding: 12,
+                      cornerRadius: 8,
+                      titleFont: { size: 13, weight: 700 },
+                      bodyFont: { size: 12 },
+                    },
+                    datalabels: {
+                      display: (context: any) => {
+                        return context.dataset.data[context.dataIndex] > 0; // Only show if > 0
+                      },
+                      color: '#346739',
+                      anchor: 'end',
+                      align: 'top',
+                      offset: 4,
+                      font: { weight: 700, size: 10 },
+                      formatter: (v: any) => v, // v is already checked in 'display'
+                    },
                   },
                   scales: {
                     y: { 
                       beginAtZero: true,
+                      stacked: true,
                       border: { display: false },
                       grid: { color: 'rgba(0, 0, 0, 0.04)' },
-                      ticks: { font: { weight: 700, size: 11 } }
+                      ticks: { font: { weight: 700, size: 11 }, labelOffset: -4 },
+                      title: { display: true, text: 'Số lượng', font: { size: 11, weight: 700 }, color: '#6b7280', }
                     },
                     x: { 
                       display: true,
+                      stacked: true,
                       border: { display: false },
                       grid: { display: false },
                       ticks: { font: { weight: 700, size: 11 } }

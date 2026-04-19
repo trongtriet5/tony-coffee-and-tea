@@ -56,6 +56,7 @@ export interface CartItem {
 
 export interface OrderItem {
   id: string;
+  order_id: string;
   product_id: string;
   product?: Product;
   variant_id?: string;
@@ -63,6 +64,7 @@ export interface OrderItem {
   quantity: number;
   unit_price: number;
   subtotal: number;
+  note?: string;
   toppings?: { name: string; price: number }[];
 }
 
