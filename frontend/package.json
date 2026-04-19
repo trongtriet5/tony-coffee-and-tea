@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "if [ -n \"$DATABASE_URL\" ]; then npx prisma generate; else echo \"Skipping prisma generate - DATABASE_URL not set\"; fi"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

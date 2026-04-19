@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo, useDeferredValue } from "react";
-import { getProducts, getCategories, getToppings, createOrder, getAvailableTables, getOrder, addItemsToOrder, getBranches } from "@/lib/api";
+import { getCategories, getToppings, createOrder, getAvailableTables, getOrder, addItemsToOrder, getBranches } from "@/lib/api";
+import { useProducts, useToppings } from "@/lib/useProducts";
 import type { Product, Topping, CartItem, PaymentMethod, OrderType, Table, Branch, ProductVariant, Order } from "@/types";
 import {
   HiChevronLeft, HiPlus, HiMinus, HiTrash, HiShoppingCart,
@@ -201,8 +202,8 @@ export default function POSPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [toppings, setToppings] = useState<Topping[]>([]);
+  const { products, isLoading: productsLoading } = useProducts(false);
+  const toppings = useToppings(false).toppings;
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -247,7 +248,7 @@ export default function POSPage() {
     window.addEventListener("resize", checkMobile);
     
     // Initial data fetch
-    Promise.all([getBranches(), getCategories(), getToppings()]).then(([brs, cats, tops]) => {
+    Promise.all([getBranches(), getCategories()]).then(([brs, cats]) => {
       setBranches(brs);
       
       const orderMap: Record<string, number> = {
@@ -270,7 +271,6 @@ export default function POSPage() {
         .sort((a, b) => (orderMap[a.toUpperCase()] || 99) - (orderMap[b.toUpperCase()] || 99));
 
       setCategories([...new Set([...sortedCats, "Topping"])]);
-      setToppings(tops);
 
       const params = new URLSearchParams(window.location.search);
       const tId = params.get("tableId");
@@ -314,7 +314,6 @@ export default function POSPage() {
           setSelectedBranchId(brs[0].id);
         }
       }
-      setPageLoading(false);
     });
 
     return () => window.removeEventListener("resize", checkMobile);
@@ -324,13 +323,7 @@ export default function POSPage() {
   useEffect(() => {
     if (selectedBranchId) {
       setCart([]); // Clear cart when branch changes
-      Promise.all([
-        getProducts(),
-        getAvailableTables(selectedBranchId)
-      ]).then(([prods, tbls]) => {
-        setProducts(prods);
-        setTables(tbls);
-      });
+      getAvailableTables(selectedBranchId).then(setTables);
     }
   }, [selectedBranchId]);
 

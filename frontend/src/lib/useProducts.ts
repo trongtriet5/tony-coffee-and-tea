@@ -8,7 +8,7 @@ export function useProducts(all: boolean = true) {
   const { data, error, isLoading, mutate: mutateProducts } = useSWR<Product[]>(
     `${API_URL}/products?all=${all}`,
     () => getProducts({ all }),
-    { revalidateOnFocus: false }
+    { revalidateOnFocus: false, revalidateOnReconnect: false }
   );
   return { products: data || [], isLoading, error, mutate: mutateProducts };
 }
@@ -17,7 +17,7 @@ export function useCategories() {
   const { data, error, isLoading, mutate: mutateCategories } = useSWR<{ category: string; count: number }[]>(
     `${API_URL}/products/categories`,
     getCategories,
-    { revalidateOnFocus: false }
+    { revalidateOnFocus: false, revalidateOnReconnect: false }
   );
   return { categories: data || [], isLoading, error, mutate: mutateCategories };
 }
@@ -26,39 +26,47 @@ export function useToppings(all: boolean = true) {
   const { data, error, isLoading, mutate: mutateToppings } = useSWR<Topping[]>(
     `${API_URL}/products/toppings?all=${all}`,
     () => getToppings({ all }),
-    { revalidateOnFocus: false }
+    { revalidateOnFocus: false, revalidateOnReconnect: false }
   );
   return { toppings: data || [], isLoading, error, mutate: mutateToppings };
 }
 
 export async function refreshProducts() {
   await Promise.all([
-    mutate(`${API_URL}/products`),
-    mutate(`${API_URL}/products/categories`),
-    mutate(`${API_URL}/products/toppings`),
+    mutate(`${API_URL}/products`, getProducts({ all: true }), false),
+    mutate(`${API_URL}/products?all=false`, getProducts({ all: false }), false),
+    mutate(`${API_URL}/products/categories`, getCategories(), false),
+    mutate(`${API_URL}/products/toppings`, getToppings({ all: true }), false),
+    mutate(`${API_URL}/products/toppings?all=false`, getToppings({ all: false }), false),
   ]);
 }
 
 export async function optimisticCreateProduct(data: any) {
-  return createProduct(data).then(() => refreshProducts());
+  await createProduct(data);
+  await refreshProducts();
 }
 
 export async function optimisticUpdateProduct(id: string, data: any) {
-  return updateProduct(id, data).then(() => refreshProducts());
+  await updateProduct(id, data);
+  await refreshProducts();
 }
 
 export async function optimisticDeleteProduct(id: string) {
-  return deleteProduct(id).then(() => refreshProducts());
+  await deleteProduct(id);
+  await refreshProducts();
 }
 
 export async function optimisticCreateTopping(data: any) {
-  return createTopping(data).then(() => refreshProducts());
+  await createTopping(data);
+  await refreshProducts();
 }
 
 export async function optimisticUpdateTopping(id: string, data: any) {
-  return updateTopping(id, data).then(() => refreshProducts());
+  await updateTopping(id, data);
+  await refreshProducts();
 }
 
 export async function optimisticDeleteTopping(id: string) {
-  return deleteTopping(id).then(() => refreshProducts());
+  await deleteTopping(id);
+  await refreshProducts();
 }

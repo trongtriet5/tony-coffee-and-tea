@@ -36,11 +36,13 @@ export interface Topping {
 
 export interface Employee {
   id: string;
+  username?: string;
   name: string;
   position_name: string;
   role: 'STAFF' | 'ADMIN' | 'MANAGER';
-  branch_id: string;
+  branch_id?: string;
   created_at: string;
+  branch?: { id: string; name: string };
 }
 
 export interface CartItem {

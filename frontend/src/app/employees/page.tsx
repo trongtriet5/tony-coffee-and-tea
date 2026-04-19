@@ -1,6 +1,7 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { getEmployees, createEmployee, updateEmployee, deleteEmployee, getBranches } from "@/lib/api";
+import React, { useState, useEffect, useMemo } from "react";
+import { optimisticCreateEmployee, optimisticUpdateEmployee, optimisticDeleteEmployee, useEmployees, useBranches } from "@/lib/useData";
+import type { Employee, Branch } from "@/types";
 import { HiPlus, HiUsers, HiCheck, HiPencilAlt, HiTrash, HiShieldCheck, HiOutlineUser } from "react-icons/hi";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -9,10 +10,9 @@ import { useToast } from "@/components/ToastProvider";
 export default function EmployeesPage() {
   const currentUser = useCurrentUser();
   const { success: toastSuccess, error: toastError } = useToast();
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [branches, setBranches] = useState<any[]>([]);
+  const { employees, isLoading: empLoading, mutate: mutateEmployees } = useEmployees();
+  const { branches, isLoading: branchLoading } = useBranches();
   const [loading, setLoading] = useState(false);
-  const [fetchLoading, setFetchLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -23,32 +23,21 @@ export default function EmployeesPage() {
   }, []);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  const defaultBranchId = useMemo(() => branches[0]?.id || "", [branches]);
+
   const [form, setForm] = useState({
     username: "",
     password: "",
     name: "",
     role: "STAFF",
-    branch_id: ""
+    branch_id: defaultBranchId
   });
 
   useEffect(() => {
-    if (currentUser) {
-      fetchData();
+    if (!form.branch_id && defaultBranchId) {
+      setForm(prev => ({ ...prev, branch_id: defaultBranchId }));
     }
-  }, [currentUser]);
-
-  const fetchData = async () => {
-    setFetchLoading(true);
-    try {
-      const [empData, brData] = await Promise.all([getEmployees(), getBranches()]);
-      setEmployees(empData);
-      setBranches(brData);
-      if (brData.length > 0 && !form.branch_id) {
-        setForm(prev => ({ ...prev, branch_id: brData[0].id }));
-      }
-    } catch (e) { console.error(e); }
-    finally { setFetchLoading(false); }
-  };
+  }, [defaultBranchId]);
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,24 +47,23 @@ export default function EmployeesPage() {
       if (editingId) {
         const payload = { ...form };
         if (!payload.password) delete (payload as any).password;
-        await updateEmployee(editingId, payload);
+        await optimisticUpdateEmployee(editingId, payload);
         toastSuccess("Cập nhật tài khoản thành công!");
       } else {
-        await createEmployee(form);
+        await optimisticCreateEmployee(form);
         toastSuccess("Thêm tài khoản mới thành công!");
       }
-      setForm({ username: "", password: "", name: "", role: "STAFF", branch_id: branches[0]?.id || "" });
+      setForm({ username: "", password: "", name: "", role: "STAFF", branch_id: defaultBranchId });
       setEditingId(null);
-      fetchData();
     } catch (error: any) {
       toastError(error.response?.data?.message || "Có lỗi xảy ra");
     } finally { setLoading(false); }
   };
 
-  const startEdit = (emp: any) => {
+  const startEdit = (emp: Employee) => {
     setEditingId(emp.id);
     setForm({
-      username: emp.username,
+      username: emp.username || "",
       password: "",
       name: emp.name,
       role: emp.role,
@@ -87,9 +75,8 @@ export default function EmployeesPage() {
     if (!confirm("Xóa tài khoản này?")) return;
     try {
       setLoading(true);
-      await deleteEmployee(id);
+      await optimisticDeleteEmployee(id);
       toastSuccess("Xóa tài khoản thành công!");
-      fetchData();
     } catch (error) {
       toastError("Lỗi khi xóa tài khoản.");
     } finally { setLoading(false); }
@@ -97,6 +84,8 @@ export default function EmployeesPage() {
 
   const inputStyle = { width: "100%", padding: "12px 16px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, fontWeight: 700, outline: "none", transition: "0.2s", background: "var(--bg-primary)" };
   const labelStyle = { fontSize: 13, fontWeight: 700, color: "var(--text-muted)", marginBottom: 8, display: "block" };
+
+  const fetchLoading = empLoading || branchLoading;
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-primary)", padding: isMobile ? "32px 24px" : "40px 40px 60px 120px" }}>
@@ -167,7 +156,7 @@ export default function EmployeesPage() {
                           <div style={{ fontSize: 11, fontWeight: 800, color: "var(--accent)", display: "flex", gap: 8, marginTop: 4 }}>
                             <span>{emp.role}</span>
                             <span style={{ color: "var(--text-muted)" }}>•</span>
-                            <span>{emp.branch?.name || "Global"}</span>
+                            <span>{(emp as any).branch?.name || "Global"}</span>
                           </div>
                         </div>
                       </div>

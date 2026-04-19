@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { getBranches, createBranch, updateBranch, deleteBranch } from "@/lib/api";
+import { optimisticCreateBranch, optimisticUpdateBranch, optimisticDeleteBranch, useBranches } from "@/lib/useData";
 import { HiPlus, HiOfficeBuilding, HiCheck, HiPencilAlt, HiTrash } from "react-icons/hi";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -9,9 +9,8 @@ import { useToast } from "@/components/ToastProvider";
 export default function BranchesPage() {
   const currentUser = useCurrentUser();
   const { success: toastSuccess, error: toastError } = useToast();
-  const [branches, setBranches] = useState<any[]>([]);
+  const { branches, isLoading, mutate: mutateBranches } = useBranches();
   const [loading, setLoading] = useState(false);
-  const [fetchLoading, setFetchLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -23,35 +22,20 @@ export default function BranchesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [branchForm, setBranchForm] = useState({ name: "", address: "", phone: "" });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setFetchLoading(true);
-    try {
-      const data = await getBranches();
-      setBranches(data);
-    } catch (e) { console.error(e); }
-    finally { setFetchLoading(false); }
-  };
-
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!branchForm.name) return;
     setLoading(true);
     try {
       if (editingId) {
-        await updateBranch(editingId, branchForm);
+        await optimisticUpdateBranch(editingId, branchForm);
         toastSuccess("Cập nhật chi nhánh thành công!");
       } else {
-        await createBranch(branchForm);
+        await optimisticCreateBranch(branchForm);
         toastSuccess("Thêm chi nhánh mới thành công!");
       }
       setBranchForm({ name: "", address: "", phone: "" });
       setEditingId(null);
-      fetchData();
     } catch (error) {
       toastError("Có lỗi xảy ra");
     } finally { setLoading(false); }
@@ -66,9 +50,8 @@ export default function BranchesPage() {
     if (!confirm("Xóa chi nhánh này? Điều này có thể ảnh hưởng đến dữ liệu liên quan.")) return;
     try {
       setLoading(true);
-      await deleteBranch(id);
+      await optimisticDeleteBranch(id);
       toastSuccess("Xóa chi nhánh thành công!");
-      fetchData();
     } catch (error) {
       toastError("Chỉ có thể xóa chi nhánh chưa có dữ liệu giao dịch.");
     } finally { setLoading(false); }
@@ -112,7 +95,7 @@ export default function BranchesPage() {
           <div>
             <div style={{ background: "white", borderRadius: 24, border: "1px solid var(--border)", padding: 32, boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
               <h3 style={{ fontSize: 18, fontWeight: 900, marginBottom: 24 }}>Danh Sách Chi Nhánh</h3>
-              {fetchLoading ? (
+              {isLoading ? (
                 <AiOutlineLoading3Quarters size={32} className="spin" color="var(--accent)" />
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

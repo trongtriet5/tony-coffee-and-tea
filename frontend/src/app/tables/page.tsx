@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { getTables, createTable, updateTable, deleteTable, getTableOccupancy, occupyTable, releaseTable, transferTable, getOrder, getBranches } from "@/lib/api";
+import { getTableOccupancy, occupyTable, releaseTable, transferTable, getOrder, getBranches } from "@/lib/api";
+import { optimisticCreateTable, optimisticDeleteTable, useTables, useBranches } from "@/lib/useData";
 import type { Table, Order, Branch } from "@/types";
 import { HiPlus, HiCheck, HiOutlineDesktopComputer, HiBan, HiTrash, HiOutlineShoppingCart } from "react-icons/hi";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
@@ -10,14 +11,16 @@ import { useToast } from "@/components/ToastProvider";
 export default function TablesManagementPage() {
   const currentUser = useCurrentUser();
   const { success: toastSuccess, error: toastError } = useToast();
-  const [tables, setTables] = useState<Table[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>("");
+  const { tables, isLoading: tablesLoading, mutate: mutateTables } = useTables(selectedBranchId || undefined);
+  const { branches, isLoading: branchLoading } = useBranches();
   const [occupancyStats, setOccupancyStats] = useState<any>(null);
 
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   const [loading, setLoading] = useState(false);
-  const [fetchLoading, setFetchLoading] = useState(true);
+  const fetchLoading = tablesLoading || branchLoading;
   const [isMobile, setIsMobile] = useState(false);
   
   const [isTransferring, setIsTransferring] = useState(false);
@@ -32,51 +35,25 @@ export default function TablesManagementPage() {
   const [orderLoading, setOrderLoading] = useState(false);
 
   const [showAddForm, setShowAddForm] = useState(false);
-  const [branches, setBranches] = useState<any[]>([]);
-  const [selectedBranchId, setSelectedBranchId] = useState<string>("");
   const [tableName, setTableName] = useState('');
   const [tableCount, setTableCount] = useState('');
 
   useEffect(() => {
-    if (currentUser) {
-      getBranches().then((brs: Branch[]) => {
-        setBranches(brs);
-        if (currentUser.role !== 'ADMIN' && currentUser.branch_id) {
-          setSelectedBranchId(currentUser.branch_id);
-        } else if (brs.length > 0 && !selectedBranchId) {
-          setSelectedBranchId(brs[0].id);
-        }
-      });
-    }
-  }, [currentUser]);
-
-  useEffect(() => {
-    if (selectedBranchId && currentUser) fetchData();
-  }, [selectedBranchId, currentUser]);
-
-  const fetchData = async () => {
-    setFetchLoading(true);
-    try {
-      const [tablesData, occupancy] = await Promise.all([
-        getTables(selectedBranchId),
-        getTableOccupancy(selectedBranchId),
-      ]);
-      setTables(tablesData);
-      setOccupancyStats(occupancy);
-
-      // Refresh selected table if it exists
-      if (selectedTable) {
-        const updated = tablesData.find(t => t.id === selectedTable.id);
-        if (updated) {
-          handleSelectTable(updated); // Re-fetch order if needed
-        } else {
-          setSelectedTable(null);
-          setSelectedOrder(null);
-        }
+    if (currentUser && branches.length > 0) {
+      if (currentUser.role !== 'ADMIN' && currentUser.branch_id) {
+        setSelectedBranchId(currentUser.branch_id);
+      } else if (!selectedBranchId) {
+        setSelectedBranchId(branches[0].id);
       }
-    } catch (e) { console.error(e); }
-    finally { setFetchLoading(false); }
-  };
+    }
+  }, [currentUser, branches, selectedBranchId]);
+
+  // Fetch occupancy when tables change
+  useEffect(() => {
+    if (tables.length > 0) {
+      getTableOccupancy(selectedBranchId).then(setOccupancyStats);
+    }
+  }, [tables, selectedBranchId]);
 
 
   const handleSelectTable = async (table: Table) => {
@@ -107,17 +84,16 @@ export default function TablesManagementPage() {
         const startNum = existingTableNumbers.length > 0 ? Math.max(...existingTableNumbers) + 1 : 1;
         
         for (let i = 0; i < count; i++) {
-          await createTable({ name: `Bàn ${startNum + i}`, branch_id: selectedBranchId });
+          await optimisticCreateTable({ name: `Bàn ${startNum + i}`, branch_id: selectedBranchId });
         }
         toastSuccess(`Đã tạo ${count} bàn mới!`);
       } else if (tableName) {
-        await createTable({ name: tableName, branch_id: selectedBranchId });
+        await optimisticCreateTable({ name: tableName, branch_id: selectedBranchId });
         toastSuccess(`Tạo bàn ${tableName} thành công!`);
       }
       setTableName('');
       setTableCount('');
       setShowAddForm(false);
-      fetchData();
     } catch (err) {
       toastError("Lỗi khi thêm bàn");
     } finally { setLoading(false); }
@@ -141,13 +117,13 @@ export default function TablesManagementPage() {
     if (result.isConfirmed) {
       setLoading(true);
       try {
-        await deleteTable(id);
+        await optimisticDeleteTable(id);
         toastSuccess("Đã xóa bàn");
         if (selectedTable?.id === id) {
           setSelectedTable(null);
           setSelectedOrder(null);
         }
-        fetchData();
+        mutateTables();
       } catch (err) {
         toastError('Không thể xóa bàn (có thể do đang có hóa đơn)');
       } finally { setLoading(false); }
@@ -159,7 +135,7 @@ export default function TablesManagementPage() {
       setLoading(true);
       await occupyTable(id);
       toastSuccess("Đã mở bàn");
-      await fetchData();
+      mutateTables();
     } catch (err) {
       toastError('Lỗi mở bàn');
     } finally { setLoading(false); }
@@ -171,7 +147,7 @@ export default function TablesManagementPage() {
       await releaseTable(id);
       toastSuccess("Đã kết thúc sử dụng bàn");
       setSelectedOrder(null);
-      await fetchData();
+      mutateTables();
     } catch (err) {
       toastError('Lỗi kết thúc bàn');
     } finally { setLoading(false); }
@@ -185,14 +161,8 @@ export default function TablesManagementPage() {
       toastSuccess("Chuyển bàn thành công");
       setIsTransferring(false);
       setTransferTarget("");
-      const [tablesData, occupancy] = await Promise.all([
-        getTables(selectedBranchId),
-        getTableOccupancy(selectedBranchId),
-      ]);
-      setTables(tablesData);
-      setOccupancyStats(occupancy);
-      
-      const newTable = tablesData.find(t => t.id === transferTarget);
+      await mutateTables();
+      const newTable = tables.find(t => t.id === transferTarget);
       if (newTable) {
         handleSelectTable(newTable);
       } else {

@@ -3,11 +3,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import { Material, MaterialTransaction } from "@/types";
 import {
-  getMaterials, createMaterial, addMaterialTransaction,
-  getMaterialTransactions, getInventoryReport, updateMaterial,
-  deleteMaterial, importMaterials, getMaterialTemplateUrl, exportMaterialsExcel,
-  getBranches, getAllTransactions
+  addMaterialTransaction,
+  getMaterialTransactions, getInventoryReport,
+  importMaterials, getMaterialTemplateUrl, exportMaterialsExcel,
+  getAllTransactions
 } from "@/lib/api";
+import { optimisticCreateMaterial, optimisticUpdateMaterial, optimisticDeleteMaterial, useMaterials, useBranches } from "@/lib/useData";
 import { HiPlus, HiBeaker, HiExclamationCircle, HiCheck, HiPencilAlt, HiBadgeCheck, HiBan, HiTrash, HiDownload, HiCollection, HiUpload, HiDocumentText, HiOutlineClipboardList, HiArrowRight } from "react-icons/hi";
 import { AiOutlineLoading3Quarters, AiOutlineStock } from "react-icons/ai";
 import { useToast } from "@/components/ToastProvider";
@@ -16,17 +17,14 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 export default function MaterialsPage() {
   const currentUser = useCurrentUser();
   const { success: toastSuccess, error: toastError, warning: toastWarning } = useToast();
-
-  const [materials, setMaterials] = useState<Material[]>([]);
-  const [transactions, setTransactions] = useState<MaterialTransaction[]>([]);
-  const [branches, setBranches] = useState<any[]>([]);
-
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
   const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null);
   const [editingMaterialId, setEditingMaterialId] = useState<string | null>(null);
+  const { materials, isLoading: materialsLoading, mutate: mutateMaterials } = useMaterials(selectedBranchId || undefined);
+  const { branches, isLoading: branchLoading } = useBranches();
+  const [transactions, setTransactions] = useState<MaterialTransaction[]>([]);
 
   const [loading, setLoading] = useState(false);
-  const [fetchLoading, setFetchLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,39 +40,19 @@ export default function MaterialsPage() {
   }, []);
 
   useEffect(() => {
-    if (currentUser) {
-      if (currentUser.branch_id && !selectedBranchId) {
+    if (currentUser && !selectedBranchId) {
+      if (currentUser.branch_id) {
         setSelectedBranchId(currentUser.branch_id);
-      } else {
-        fetchData(selectedBranchId);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser, selectedBranchId]);
 
-  const fetchData = async (branchId?: string) => {
-    const targetBranch = branchId || selectedBranchId;
-    if (currentUser?.role !== 'ADMIN' && !targetBranch) return;
-
-    setFetchLoading(true);
-    try {
-      // If targetBranch is an empty string (Tất cả chi nhánh), don't pass it as undefined to keep it distinct?
-      // Wait, getMaterials(undefined) fetches all. So passing empty string or undefined is fine.
-      const paramBranch = targetBranch === "" ? undefined : targetBranch;
-      const [mats, brs, txs] = await Promise.all([
-        getMaterials(paramBranch),
-        getBranches(),
-        getAllTransactions(paramBranch)
-      ]);
-      setMaterials(mats);
-      setBranches(brs);
-      setTransactions(txs);
-    } catch (e) {
-      console.error("Fetch error:", e);
-    } finally {
-      setFetchLoading(false);
-    }
-  };
+  // Fetch transactions separately since they're not in the hook
+  useEffect(() => {
+    if (currentUser?.role !== 'ADMIN' && !selectedBranchId) return;
+    const paramBranch = selectedBranchId === "" ? undefined : selectedBranchId;
+    getAllTransactions(paramBranch).then(setTransactions);
+  }, [currentUser, selectedBranchId]);
 
   const handleCreateOrUpdateMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,16 +69,15 @@ export default function MaterialsPage() {
       };
 
       if (editingMaterialId) {
-        await updateMaterial(editingMaterialId, payload);
+        await optimisticUpdateMaterial(editingMaterialId, payload);
         toastSuccess("Cập nhật nguyên liệu thành công!");
       } else {
-        await createMaterial(payload);
+        await optimisticCreateMaterial(payload);
         toastSuccess("Đã thêm nguyên liệu mới thành công!");
       }
 
       setMaterialForm({ name: "", unit: "", cost_per_unit: "", stock_current: "", safety_stock: "" });
       setEditingMaterialId(null);
-      fetchData();
     } catch (error) {
       toastError("Có lỗi xảy ra khi xử lý nguyên liệu");
     } finally { setLoading(false); }
@@ -119,7 +96,7 @@ export default function MaterialsPage() {
       });
       toastSuccess("Ghi nhận giao dịch thành công!");
       setTransactionForm({ type: "IN", quantity: "", note: "" });
-      fetchData();
+      mutateMaterials();
     } catch (error) {
       toastError("Có lỗi xảy ra khi ghi nhận giao dịch");
     } finally { setLoading(false); }
@@ -133,7 +110,7 @@ export default function MaterialsPage() {
       const res = await importMaterials(file, selectedBranchId);
       toastSuccess(`Import thành công ${res.success}/${res.total} nguyên liệu!`);
       if (res.errors.length > 0) toastWarning(`Có ${res.errors.length} lỗi mapping!`);
-      fetchData();
+      mutateMaterials();
     } catch (err) {
       toastError("Lỗi import file. Vui lòng kiểm tra định dạng template.");
     } finally {
@@ -168,11 +145,10 @@ export default function MaterialsPage() {
     if (result.isConfirmed) {
       try {
         setLoading(true);
-        await deleteMaterial(id);
+        await optimisticDeleteMaterial(id);
         toastSuccess("Xóa nguyên liệu thành công!");
         if (selectedMaterialId === id) setSelectedMaterialId(null);
         if (editingMaterialId === id) cancelEdit();
-        fetchData();
       } catch (error) {
         toastError("Có lỗi xảy ra khi xóa nguyên liệu");
       } finally { setLoading(false); }
@@ -291,11 +267,11 @@ export default function MaterialsPage() {
                   <HiCollection size={20} color="var(--accent)" />
                   DANH SÁCH NGUYÊN LIỆU
                 </h3>
-                {fetchLoading && <AiOutlineLoading3Quarters size={18} className="spin" color="var(--accent)" />}
+                {(materialsLoading || branchLoading) && <AiOutlineLoading3Quarters size={18} className="spin" color="var(--accent)" />}
               </div>
 
               <div className="custom-scroll" style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-                {fetchLoading && materials.length === 0 ? (
+                {(materialsLoading || branchLoading) && materials.length === 0 ? (
                   [1, 2, 3, 4].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 16 }} />)
                 ) : materials.length === 0 ? (
                   <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 13, fontWeight: 700 }}>Chưa có nguyên liệu nào.</div>
@@ -396,7 +372,7 @@ export default function MaterialsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {fetchLoading ? (
+                    {(materialsLoading || branchLoading) ? (
                       [1, 2, 3, 4, 5].map(i => (
                         <tr key={i}><td colSpan={5} style={{ padding: 16 }}><div className="skeleton" style={{ height: 40, borderRadius: 8, width: "100%" }} /></td></tr>
                       ))
