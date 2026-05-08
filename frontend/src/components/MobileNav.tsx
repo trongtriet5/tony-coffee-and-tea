@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HiX, HiMenu, HiLogout, HiOfficeBuilding, HiUsers, HiViewGrid, HiTemplate, HiOutlineReceiptTax } from "react-icons/hi";
+import { HiX, HiMenu, HiLogout, HiOfficeBuilding, HiUsers, HiViewGrid } from "react-icons/hi";
 import { MdOutlineReceiptLong, MdOutlineSpaceDashboard, MdPayment, MdTableBar } from "react-icons/md";
 import { FiBox, FiGitBranch } from "react-icons/fi";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -55,8 +55,8 @@ export default function MobileNav() {
           onClick={() => setIsOpen(true)}
           style={{
             position: "fixed",
-            bottom: 24,
-            right: 24,
+            bottom: "calc(env(safe-area-inset-bottom, 0px) + 84px)",
+            right: 16,
             width: 56,
             height: 56,
             borderRadius: "50%",

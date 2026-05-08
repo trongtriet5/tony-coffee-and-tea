@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { Viewport } from "next";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import MobileNav from "@/components/MobileNav";
@@ -13,6 +14,12 @@ export const metadata: Metadata = {
   },
   description: "Hệ thống quản lý bán hàng Tony Coffee & Tea POS chuyên nghiệp",
   keywords: ["POS", "cà phê", "quản lý", "bán hàng"],
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

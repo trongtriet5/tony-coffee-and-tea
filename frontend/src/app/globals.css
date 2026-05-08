@@ -41,6 +41,10 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
+body {
+  overflow-x: hidden;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
@@ -118,4 +122,89 @@ html, body {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  :where(button, input, select, textarea) {
+    min-height: 44px;
+  }
+
+  :where(input, select, textarea) {
+    font-size: 16px;
+  }
+
+  .btn-primary,
+  .hover-btn {
+    min-height: 46px;
+    font-size: 14px;
+    font-weight: 800;
+    border-radius: 12px;
+  }
+}
+
+.pos-scroll-area {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  --scroll-fade-size: 10px;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black var(--scroll-fade-size),
+    black calc(100% - var(--scroll-fade-size)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black var(--scroll-fade-size),
+    black calc(100% - var(--scroll-fade-size)),
+    transparent 100%
+  );
+}
+
+.pos-scroll-x {
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pos-scroll-area::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.pos-scroll-x::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+.pos-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pos-scroll-x::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pos-scroll-area::-webkit-scrollbar-thumb {
+  background: #d9e0d8;
+  border-radius: 12px;
+}
+
+.pos-scroll-x::-webkit-scrollbar-thumb {
+  background: #d9e0d8;
+  border-radius: 12px;
+}
+
+.pos-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: #c4cec2;
+}
+
+.pos-scroll-x::-webkit-scrollbar-thumb:hover {
+  background: #c4cec2;
+}
+
+@media (max-width: 768px) {
+  .pos-scroll-area {
+    --scroll-fade-size: 8px;
+  }
 }

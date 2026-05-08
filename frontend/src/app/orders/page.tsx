@@ -148,62 +148,62 @@ export default function OrdersPage() {
       return format(new Date(d.getTime() + d.getTimezoneOffset() * 60000), pat);
    };
 
-const handleExportExcel = async () => {
-       try {
-          const res = await getOrders({ page: 1, limit: 10000, search });
-          const allOrders = (res as any).data || [];
+   const handleExportExcel = async () => {
+      try {
+         const res = await getOrders({ page: 1, limit: 10000, search });
+         const allOrders = (res as any).data || [];
 
-          const headers = ["MÃ ĐƠN HÀNG", "CHI NHÁNH", "THỜI GIAN", "TÊN MÓN", "SỐ LƯỢNG", "GIÁ MÓN", "THANH TOÁN", "HÌNH THỨC", "TRẠNG THÁI"];
+         const headers = ["MÃ ĐƠN HÀNG", "CHI NHÁNH", "THỜI GIAN", "TÊN MÓN", "SỐ LƯỢNG", "GIÁ MÓN", "THANH TOÁN", "HÌNH THỨC", "TRẠNG THÁI"];
 
-          const rows: any[][] = [];
-          allOrders.forEach((o: any) => {
-             const items = o.items || [];
-             if (items.length === 0) {
-                rows.push([
-                   o.order_number,
-                   o.branch?.name || "N/A",
-                   formatExactDBTime(o.created_at, "HH:mm dd/MM/yyyy"),
-                   "",
-                   0,
-                   0,
-                   o.final_amount,
-                   o.payment_method === "CASH" ? "Tiền mặt" : "Chuyển khoản",
-                   o.order_type === "TAKEAWAY" ? "Mang đi" : "Tại chỗ",
-                   "HOÀN TẤT"
-                ]);
-             } else {
-                items.forEach((item: any, idx: number) => {
-                   const unitPrice = item.unit_price || 0;
-                   const productName = item.product?.name_vi || (item as any).product_name || "Món";
-                   rows.push([
-                      idx === 0 ? o.order_number : "",
-                      idx === 0 ? (o.branch?.name || "N/A") : "",
-                      idx === 0 ? formatExactDBTime(o.created_at, "HH:mm dd/MM/yyyy") : "",
-                      productName,
-                      item.quantity,
-                      unitPrice,
-                      idx === 0 ? o.final_amount : "",
-                      idx === 0 ? (o.payment_method === "CASH" ? "Tiền mặt" : "Chuyển khoản") : "",
-                      idx === 0 ? (o.order_type === "TAKEAWAY" ? "Mang đi" : "Tại chỗ") : "",
-                      idx === 0 ? "HOÀN TẤT" : ""
-                   ]);
-                });
-             }
-          });
+         const rows: any[][] = [];
+         allOrders.forEach((o: any) => {
+            const items = o.items || [];
+            if (items.length === 0) {
+               rows.push([
+                  o.order_number,
+                  o.branch?.name || "N/A",
+                  formatExactDBTime(o.created_at, "HH:mm dd/MM/yyyy"),
+                  "",
+                  0,
+                  0,
+                  o.final_amount,
+                  o.payment_method === "CASH" ? "Tiền mặt" : "Chuyển khoản",
+                  o.order_type === "TAKEAWAY" ? "Mang đi" : "Tại chỗ",
+                  "HOÀN TẤT"
+               ]);
+            } else {
+               items.forEach((item: any, idx: number) => {
+                  const unitPrice = item.unit_price || 0;
+                  const productName = item.product?.name_vi || (item as any).product_name || "Món";
+                  rows.push([
+                     idx === 0 ? o.order_number : "",
+                     idx === 0 ? (o.branch?.name || "N/A") : "",
+                     idx === 0 ? formatExactDBTime(o.created_at, "HH:mm dd/MM/yyyy") : "",
+                     productName,
+                     item.quantity,
+                     unitPrice,
+                     idx === 0 ? o.final_amount : "",
+                     idx === 0 ? (o.payment_method === "CASH" ? "Tiền mặt" : "Chuyển khoản") : "",
+                     idx === 0 ? (o.order_type === "TAKEAWAY" ? "Mang đi" : "Tại chỗ") : "",
+                     idx === 0 ? "HOÀN TẤT" : ""
+                  ]);
+               });
+            }
+         });
 
-          const worksheetData = [headers, ...rows];
-          const ws = XLSX.utils.aoa_to_sheet(worksheetData);
-          const wb = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(wb, ws, "Orders");
-          XLSX.writeFile(wb, `LichSuDonHang_${format(new Date(), "ddMMyyyy")}.xlsx`);
-       } catch (err) {
-          console.error("Export error", err);
-          toastError("Có lỗi xảy ra khi xuất dữ liệu.");
-       }
-    };
+         const worksheetData = [headers, ...rows];
+         const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+         const wb = XLSX.utils.book_new();
+         XLSX.utils.book_append_sheet(wb, ws, "Orders");
+         XLSX.writeFile(wb, `LichSuDonHang_${format(new Date(), "ddMMyyyy")}.xlsx`);
+      } catch (err) {
+         console.error("Export error", err);
+         toastError("Có lỗi xảy ra khi xuất dữ liệu.");
+      }
+   };
 
    return (
-      <div style={{ minHeight: "100vh", background: "var(--bg-primary)", padding: isMobile ? "32px 24px" : "40px 40px 60px 120px" }}>
+      <div style={{ minHeight: "100dvh", background: "var(--bg-primary)", padding: isMobile ? "20px 12px calc(env(safe-area-inset-bottom, 0px) + 92px)" : "40px 40px 60px 120px" }}>
          <div style={{ maxWidth: 1400, margin: "0 auto" }}>
             <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 24 : 0, justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: isMobile ? 32 : 40 }}>
                <div>
@@ -216,7 +216,7 @@ const handleExportExcel = async () => {
                         <select
                            value={selectedBranchId}
                            onChange={(e) => setSelectedBranchId(e.target.value)}
-                           style={{ width: "fit-content", padding: isMobile ? "12px 16px" : "14px 24px", paddingRight: 40, borderRadius: 14, background: "white", border: "1px solid var(--border)", color: "var(--text-primary)", fontSize: 14, fontWeight: 800, cursor: "pointer", outline: "none", appearance: "none", minWidth: isMobile ? "auto" : 240 }}
+                           style={{ width: isMobile ? "100%" : "fit-content", padding: isMobile ? "12px 16px" : "14px 24px", paddingRight: 40, borderRadius: 14, background: "white", border: "1px solid var(--border)", color: "var(--text-primary)", fontSize: 14, fontWeight: 800, cursor: "pointer", outline: "none", appearance: "none", minWidth: isMobile ? "auto" : 240 }}
                         >
                            <option value="">Tất cả chi nhánh</option>
                            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -234,16 +234,16 @@ const handleExportExcel = async () => {
                         style={{ width: "100%", padding: isMobile ? "12px 16px 12px 48px" : "14px 16px 14px 48px", borderRadius: 14, border: "1px solid var(--border)", background: "white", fontSize: 14, fontWeight: 600 }}
                      />
                   </div>
-                  <button onClick={handleExportExcel} style={{ flex: isMobile ? "1 1 auto" : "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: isMobile ? "12px 16px" : "14px 24px", borderRadius: 14, background: "white", border: "1px solid var(--border)", color: "var(--text-primary)", fontWeight: 800, cursor: "pointer", fontSize: 14 }}>
+                  <button onClick={handleExportExcel} style={{ flex: isMobile ? "1 1 calc(50% - 6px)" : "none", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: isMobile ? "12px 16px" : "14px 24px", borderRadius: 14, background: "white", border: "1px solid var(--border)", color: "var(--text-primary)", fontWeight: 800, cursor: "pointer", fontSize: 14 }}>
                      <HiDownload size={20} /> <span style={{ whiteSpace: "nowrap" }}>{isMobile ? "XUẤT" : "XUẤT EXCEL"}</span>
                   </button>
 
-                  <div style={{ position: "relative", flex: isMobile ? "1 1 auto" : "none" }}>
+                  <div style={{ position: "relative", flex: isMobile ? "1 1 calc(50% - 6px)" : "none" }}>
                      <button onClick={() => setShowColumnPicker(!showColumnPicker)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: isMobile ? "12px 16px" : "14px 24px", borderRadius: 14, background: "white", border: "1px solid var(--border)", color: "var(--text-primary)", fontWeight: 800, cursor: "pointer", fontSize: 14 }}>
                         <HiViewColumns size={20} /> {isMobile ? "CỘT" : "CỘT HIỂN THỊ"}
                      </button>
                      {showColumnPicker && (
-                        <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 10, background: "white", borderRadius: 14, border: "1px solid var(--border)", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", padding: 12, zIndex: 50, width: 220 }}>
+                        <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 10, background: "white", borderRadius: 14, border: "1px solid var(--border)", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", padding: 12, zIndex: 50, width: isMobile ? "min(86vw, 300px)" : 220 }}>
                            <div style={{ padding: 16 }}>
                               <p style={{ fontSize: 12, fontWeight: 900, color: "var(--text-muted)", marginBottom: 12 }}>CHỌN CỘT HIỂN THỊ</p>
                               {allColumns.map(col => (
@@ -296,24 +296,30 @@ const handleExportExcel = async () => {
                         <HiChevronLeft size={18} />
                      </button>
 
-                     <div style={{ display: "flex", gap: 6 }}>
-                        {[...Array(totalPages)].map((_, i) => {
-                           const p = i + 1;
-                           if (totalPages <= 7 || p === 1 || p === totalPages || Math.abs(p - page) <= 1) {
-                              return (
-                                 <button
-                                    key={p}
-                                    onClick={() => setPage(p)}
-                                    style={{ minWidth: 32, height: 32, padding: "0 6px", borderRadius: 8, border: "1px solid var(--border)", background: page === p ? "var(--gold-gradient)" : "white", color: page === p ? "white" : "var(--text-primary)", fontWeight: 800, fontSize: 12, cursor: "pointer" }}
-                                 >
-                                    {p}
-                                 </button>
-                              );
-                           }
-                           if (p === 2 || p === totalPages - 1) return <span key={p} style={{ color: "var(--text-muted)", fontSize: 12 }}>...</span>;
-                           return null;
-                        })}
-                     </div>
+                     {isMobile ? (
+                        <div style={{ minWidth: 86, height: 32, padding: "0 10px", borderRadius: 8, border: "1px solid var(--border)", background: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900 }}>
+                           {totalPages === 0 ? "0/0" : `${page}/${totalPages}`}
+                        </div>
+                     ) : (
+                        <div style={{ display: "flex", gap: 6 }}>
+                           {[...Array(totalPages)].map((_, i) => {
+                              const p = i + 1;
+                              if (totalPages <= 7 || p === 1 || p === totalPages || Math.abs(p - page) <= 1) {
+                                 return (
+                                    <button
+                                       key={p}
+                                       onClick={() => setPage(p)}
+                                       style={{ minWidth: 32, height: 32, padding: "0 6px", borderRadius: 8, border: "1px solid var(--border)", background: page === p ? "var(--gold-gradient)" : "white", color: page === p ? "white" : "var(--text-primary)", fontWeight: 800, fontSize: 12, cursor: "pointer" }}
+                                    >
+                                       {p}
+                                    </button>
+                                 );
+                              }
+                              if (p === 2 || p === totalPages - 1) return <span key={p} style={{ color: "var(--text-muted)", fontSize: 12 }}>...</span>;
+                              return null;
+                           })}
+                        </div>
+                     )}
 
                      <button
                         onClick={() => handlePageChange(page + 1)}
@@ -325,7 +331,7 @@ const handleExportExcel = async () => {
                   </div>
                </div>
 
-               <div style={{ flex: 1, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+               <div className="pos-scroll-x" style={{ flex: 1, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                      <thead>
                         <tr style={{ textAlign: "left", background: "var(--bg-primary)", borderBottom: "1px solid var(--border)" }}>
@@ -398,9 +404,9 @@ const handleExportExcel = async () => {
 
             {/* ORDER DETAILS MODAL */}
             {selectedOrder && (
-               <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setSelectedOrder(null)}>
-                  <div style={{ background: "white", borderRadius: 32, width: "100%", maxWidth: 500, overflow: "hidden", display: "flex", flexDirection: "column" }} className="animate-fade-in" onClick={(e) => e.stopPropagation()}>
-                     <div style={{ padding: "32px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+               <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: isMobile ? 0 : 20 }} onClick={() => setSelectedOrder(null)}>
+                  <div style={{ background: "white", borderRadius: isMobile ? 0 : 32, width: "100%", maxWidth: 500, maxHeight: isMobile ? "100dvh" : "92dvh", overflow: "hidden", display: "flex", flexDirection: "column" }} className="animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                     <div style={{ padding: isMobile ? "16px 14px" : "32px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
                            <h3 style={{ fontSize: 18, fontWeight: 900 }}>Chi tiết đơn hàng</h3>
                            <p style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 700 }}>{selectedOrder.order_number} • {(selectedOrder as any).branch?.name || "Tony Coffee & Tea"}</p>
@@ -412,35 +418,35 @@ const handleExportExcel = async () => {
                         </button>
                      </div>
 
-                     <div style={{ padding: 32, flex: 1, overflowY: "auto", maxHeight: "60vh" }}>
+                     <div className="pos-scroll-area" style={{ padding: isMobile ? 14 : 32, flex: 1, overflowY: "auto", maxHeight: isMobile ? "none" : "60vh" }}>
                         <div style={{ marginBottom: 32 }}>
                            <p style={{ fontSize: 11, fontWeight: 900, color: "var(--text-muted)", marginBottom: 16 }}>SẢN PHẨM ĐÃ CHỌN</p>
                            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-{(selectedOrder.items || []).map((item, i) => (
-                                  <div key={i} style={{ display: "flex", justifyContent: "space-between" }}>
-                                     <div style={{ flex: 1 }}>
-                                        <div style={{ display: "flex", gap: 12 }}>
-                                           <span style={{ fontWeight: 900, fontSize: 14, color: "var(--accent)" }}>{item.quantity}x</span>
-                                           <div>
-                                              <p style={{ fontWeight: 800, fontSize: 14 }}>{(item as any).product?.name_vi || "Món"}</p>
-                                              {item.toppings && item.toppings.length > 0 && (
-                                                 <p style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600 }}>
-                                                    + {item.toppings.map(t => t.name).join(", ")}
-                                                 </p>
-                                              )}
-                                              {item.note && (
-                                                  <div style={{ fontSize: 10, color: "var(--accent)", fontWeight: 700, marginTop: 4 }}>
-                                                     {item.note.split(', ').map((part: string, idx: number) => (
-                                                       <div key={idx}>- {part}</div>
-                                                     ))}
-                                                  </div>
-                                               )}
-                                           </div>
-                                        </div>
-                                     </div>
-                                     <span style={{ fontWeight: 800, fontSize: 14 }}>{formatVND(item.subtotal)}</span>
-                                  </div>
-                               ))}
+                              {(selectedOrder.items || []).map((item, i) => (
+                                 <div key={i} style={{ display: "flex", justifyContent: "space-between" }}>
+                                    <div style={{ flex: 1 }}>
+                                       <div style={{ display: "flex", gap: 12 }}>
+                                          <span style={{ fontWeight: 900, fontSize: 14, color: "var(--accent)" }}>{item.quantity}x</span>
+                                          <div>
+                                             <p style={{ fontWeight: 800, fontSize: 14 }}>{(item as any).product?.name_vi || "Món"}</p>
+                                             {item.toppings && item.toppings.length > 0 && (
+                                                <p style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600 }}>
+                                                   + {item.toppings.map(t => t.name).join(", ")}
+                                                </p>
+                                             )}
+                                             {item.note && (
+                                                <div style={{ fontSize: 10, color: "var(--accent)", fontWeight: 700, marginTop: 4 }}>
+                                                   {item.note.split(', ').map((part: string, idx: number) => (
+                                                      <div key={idx}>- {part}</div>
+                                                   ))}
+                                                </div>
+                                             )}
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <span style={{ fontWeight: 800, fontSize: 14 }}>{formatVND(item.subtotal)}</span>
+                                 </div>
+                              ))}
                            </div>
                         </div>
 
@@ -472,7 +478,7 @@ const handleExportExcel = async () => {
                         </div>
                      </div>
 
-                     <div style={{ padding: 32, borderTop: "1px solid var(--border)" }}>
+                     <div style={{ padding: isMobile ? 14 : 32, paddingBottom: isMobile ? "calc(env(safe-area-inset-bottom, 0px) + 14px)" : 32, borderTop: "1px solid var(--border)" }}>
                         <button
                            onClick={() => handleReprint(selectedOrder)}
                            className="btn-primary"
@@ -505,13 +511,13 @@ const handleExportExcel = async () => {
                            <span>Ngày: {format(new Date(selectedOrder.created_at), "dd/MM/yyyy")}</span>
                            <span>Giờ: {format(new Date(selectedOrder.created_at), "HH:mm:ss")}</span>
                         </div>
-<div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "11px" }}>
-                            <span>Thu ngân: {(selectedOrder as any).branch?.name || "Tony Coffee & Tea"}</span>
-                         </div>
-                         <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "11px" }}>
-                            <span>Bàn:</span>
-                            <span style={{ fontWeight: "bold" }}>{selectedOrder.order_type === "TAKEAWAY" ? "Mang đi" : (selectedOrder.table?.name || "Mang đi")}</span>
-                         </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "11px" }}>
+                           <span>Thu ngân: {(selectedOrder as any).branch?.name || "Tony Coffee & Tea"}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontSize: "11px" }}>
+                           <span>Bàn:</span>
+                           <span style={{ fontWeight: "bold" }}>{selectedOrder.order_type === "TAKEAWAY" ? "Mang đi" : (selectedOrder.table?.name || "Mang đi")}</span>
+                        </div>
                      </div>
                      <table style={{ width: "100%", borderTop: "1px solid black", borderBottom: "1px solid black", borderCollapse: "collapse", marginTop: "10px" }}>
                         <thead>
@@ -524,17 +530,17 @@ const handleExportExcel = async () => {
                         <tbody style={{ fontSize: "11px" }}>
                            {(selectedOrder.items || []).map((item, i) => (
                               <tr key={i}>
-<td style={{ padding: "4px 0" }}>
-                                     {i + 1}. {item.product?.name_vi || "Món"}
-                                     {item.toppings && item.toppings.map(t => <div key={t.name} style={{ fontSize: "9px" }}>+ {t.name}</div>)}
-                                     {item.note && (
-                                     <div style={{ fontSize: "9px" }}>
-                                        {item.note.split(', ').map((part: string, idx: number) => (
-                                          <div key={idx}>- {part}</div>
-                                        ))}
-                                     </div>
-                                   )}
-                                  </td>
+                                 <td style={{ padding: "4px 0" }}>
+                                    {i + 1}. {item.product?.name_vi || "Món"}
+                                    {item.toppings && item.toppings.map(t => <div key={t.name} style={{ fontSize: "9px" }}>+ {t.name}</div>)}
+                                    {item.note && (
+                                       <div style={{ fontSize: "9px" }}>
+                                          {item.note.split(', ').map((part: string, idx: number) => (
+                                             <div key={idx}>- {part}</div>
+                                          ))}
+                                       </div>
+                                    )}
+                                 </td>
                                  <td style={{ textAlign: "center" }}>{item.quantity}</td>
                                  <td style={{ textAlign: "right" }}>{item.subtotal.toLocaleString()}</td>
                               </tr>

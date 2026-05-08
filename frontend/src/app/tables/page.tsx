@@ -178,14 +178,14 @@ export default function TablesManagementPage() {
   const labelStyle = { fontSize: 14, fontWeight: 700, color: "var(--text-muted)", marginBottom: 8, display: "block" };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-primary)", padding: isMobile ? "32px 24px" : "40px 40px 60px 120px" }}>
+    <div style={{ minHeight: "100dvh", background: "var(--bg-primary)", padding: isMobile ? "20px 12px calc(env(safe-area-inset-bottom, 0px) + 92px)" : "40px 40px 60px 120px" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
 
         {/* HEADER */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "flex-end", gap: isMobile ? 12 : 0, marginBottom: 24 }}>
           <div>
-            <h1 style={{ fontSize: 36, fontWeight: 900, marginBottom: 8 }}>Quản lý bàn</h1>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <h1 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 900, marginBottom: 8 }}>Quản lý bàn</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: isMobile ? "wrap" : "nowrap" }}>
               <p style={{ color: "var(--text-secondary)", fontSize: 15, fontWeight: 700 }}>Chi nhánh:</p>
               <select
                 value={selectedBranchId}
@@ -198,7 +198,7 @@ export default function TablesManagementPage() {
             </div>
           </div>
           {currentUser?.role === 'ADMIN' && (
-            <button onClick={() => { setShowAddForm(true); setSelectedTable(null); }} style={{ padding: "12px 24px", background: "var(--accent)", color: "white", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", gap: 8, alignItems: "center", transition: "0.2s" }} className="hover-btn">
+            <button onClick={() => { setShowAddForm(true); setSelectedTable(null); }} style={{ width: isMobile ? "100%" : "auto", justifyContent: "center", padding: "12px 24px", background: "var(--accent)", color: "white", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: "pointer", display: "flex", gap: 8, alignItems: "center", transition: "0.2s" }} className="hover-btn">
               <HiPlus size={18} /> THÊM BÀN
             </button>
           )}
@@ -208,7 +208,7 @@ export default function TablesManagementPage() {
 
         {/* STATS */}
         {/* STATS */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 32 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
           {fetchLoading && !occupancyStats ? (
             [1, 2, 3, 4].map(i => <div key={i} className="skeleton" style={{ height: 100, borderRadius: 20 }} />)
           ) : (
@@ -236,10 +236,10 @@ export default function TablesManagementPage() {
         </div>
 
         {/* MAIN SPLIT */}
-        <div style={{ display: "grid", gridTemplateColumns: "7fr 4fr", gap: 32 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "7fr 4fr", gap: isMobile ? 16 : 32 }}>
 
           {/* LEFT: GRID OF TABLES */}
-          <div style={{ background: "white", borderRadius: 24, border: "1px solid var(--border)", padding: 32, boxShadow: "0 4px 20px rgba(0,0,0,0.02)", minHeight: "60vh" }}>
+          <div style={{ background: "white", borderRadius: 24, border: "1px solid var(--border)", padding: isMobile ? 16 : 32, boxShadow: "0 4px 20px rgba(0,0,0,0.02)", minHeight: isMobile ? "auto" : "60vh" }}>
             <h3 style={{ fontSize: 18, fontWeight: 900, marginBottom: 24, display: "flex", alignItems: "center", gap: 8 }}>
               SƠ ĐỒ BÀN {fetchLoading && <AiOutlineLoading3Quarters className="spin" size={16} color="var(--accent)" />}
             </h3>
@@ -281,7 +281,7 @@ export default function TablesManagementPage() {
           </div>
 
           {/* RIGHT: DETAILS PANEL */}
-          <div style={{ position: "sticky", top: 40, alignSelf: "start" }}>
+          <div style={{ position: isMobile ? "relative" : "sticky", top: isMobile ? 0 : 40, alignSelf: "start" }}>
             {showAddForm ? (
               <div style={{ background: "white", borderRadius: 24, border: "1px solid var(--border)", padding: 32, boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
                 <h3 style={{ fontSize: 18, fontWeight: 900, marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -365,7 +365,7 @@ export default function TablesManagementPage() {
                             <option key={t.id} value={t.id}>{t.name}</option>
                           ))}
                         </select>
-                        <div style={{ display: "flex", gap: 8 }}>
+                        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 8 }}>
                           <button onClick={() => setIsTransferring(false)} disabled={loading} style={{ flex: 1, padding: 12, background: "var(--bg-primary)", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 800, cursor: "pointer", transition: "0.2s" }} className="hover-btn">
                             HỦY
                           </button>
@@ -412,7 +412,7 @@ export default function TablesManagementPage() {
 
                             <div style={{ marginBottom: 24 }}>
                               <p style={{ fontSize: 11, fontWeight: 900, color: "var(--text-muted)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}><HiOutlineShoppingCart size={16} /> CHI TIẾT MÓN</p>
-                              <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: "30vh", overflowY: "auto", paddingRight: 8 }} className="custom-scroll">
+                              <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: "30vh", overflowY: "auto", paddingRight: 8 }} className="pos-scroll-area">
                                 {selectedOrder.items?.map((item: any) => (
                                   <div key={item.id} style={{ background: "var(--bg-primary)", padding: 12, borderRadius: 12 }}>
                                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -444,7 +444,7 @@ export default function TablesManagementPage() {
                         )}
 
                         {currentUser?.role !== 'ADMIN' && (
-                          <div style={{ display: "flex", gap: 8 }}>
+                          <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 8 }}>
                             <button onClick={() => alert("Điều hướng tới trang thanh toán để in bill (Tương lai)")} style={{ flex: 1, padding: 12, background: "var(--bg-primary)", color: "var(--text-primary)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12, fontWeight: 800, cursor: "pointer", transition: "0.2s" }} className="hover-btn">
                               IN TẠM TÍNH
                             </button>
@@ -476,7 +476,7 @@ export default function TablesManagementPage() {
                         <p style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 700, textAlign: "center", padding: 20 }}>Bàn đang bận nhưng không có đơn hàng chưa thanh toán.</p>
                         {currentUser?.role !== 'ADMIN' ? (
                           <>
-                            <div style={{ display: "flex", gap: 8 }}>
+                            <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 8 }}>
                               <button onClick={() => window.location.href = `/?tableId=${selectedTable.id}`} style={{ flex: 1.5, padding: 14, background: "var(--accent)", color: "white", border: "none", borderRadius: 12, fontSize: 13, fontWeight: 800, cursor: "pointer" }} className="hover-btn">
                                 GỌI MÓN MỚI
                               </button>
@@ -515,7 +515,7 @@ export default function TablesManagementPage() {
                 )}
               </div>
             ) : (
-              <div style={{ background: "white", borderRadius: 24, border: "1px dashed var(--border)", padding: 40, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", color: "var(--text-muted)", height: "400px" }}>
+              <div style={{ background: "white", borderRadius: 24, border: "1px dashed var(--border)", padding: isMobile ? 20 : 40, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", color: "var(--text-muted)", minHeight: isMobile ? "240px" : "400px" }}>
                 <HiOutlineDesktopComputer size={48} style={{ marginBottom: 16, opacity: 0.5 }} />
                 <p style={{ fontSize: 14, fontWeight: 800 }}>Chưa chọn bàn nào</p>
                 <p style={{ fontSize: 12, fontWeight: 700, marginTop: 8, opacity: 0.7 }}>Click vào một bàn bên trái để xem chi tiết hoặc hóa đơn đang dùng.</p>
@@ -534,10 +534,6 @@ export default function TablesManagementPage() {
         .hover-btn:active { transform: translateY(0); }
         .table-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.04); }
         input:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(202, 162, 26, 0.1); }
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
       `}</style>
     </div>
   );

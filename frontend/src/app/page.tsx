@@ -573,14 +573,14 @@ export default function POSPage() {
 
   if (pageLoading) {
     return (
-      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-primary)" }}>
+      <div style={{ height: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-primary)" }}>
         <AiOutlineLoading3Quarters size={40} className="spin" color="var(--accent)" />
       </div>
     );
   }
 
   return (
-    <div style={{ display: "flex", height: "100dvh", background: "var(--bg-primary)", overflow: "hidden", paddingLeft: isMobile ? 0 : 80 }}>
+    <div style={{ display: "flex", height: "100dvh", background: "var(--bg-primary)", overflow: "hidden", paddingLeft: isMobile ? 0 : 80, paddingBottom: isMobile ? "calc(env(safe-area-inset-bottom, 0px) + 84px)" : 0 }}>
 
       {/* Hidden Receipt for Printing */}
       <div style={{ display: "none" }}>
@@ -643,7 +643,7 @@ export default function POSPage() {
         </div>
 
         {/* Product Grid */}
-        <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px" : "4px 8px 12px 4px", display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fill, minmax(160px, 1fr))", gap: isMobile ? 16 : 20, alignItems: "start", alignContent: "start" }}>
+        <div className="pos-scroll-area" style={{ flex: 1, overflowY: "auto", padding: isMobile ? "16px" : "4px 8px 12px 4px", display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fill, minmax(160px, 1fr))", gap: isMobile ? 16 : 20, alignItems: "start", alignContent: "start" }}>
           {filteredProducts.map((p) => {
             const Icon = CATEGORY_ICONS[p.category] || BiCoffeeTogo;
             const minPrice = p.variants?.length 
@@ -671,13 +671,13 @@ export default function POSPage() {
 
       {/* Cart Panel */}
       {(isCartOpen || !isMobile) && (
-        <div style={{ width: isMobile ? "100%" : "360px", height: isMobile ? "100dvh" : "100%", position: isMobile ? "fixed" : "relative", top: 0, right: 0, background: "white", zIndex: 200, display: "flex", flexDirection: "column", borderLeft: isMobile ? "none" : "1px solid var(--border)", boxShadow: isMobile ? "none" : "-10px 0 30px rgba(0,0,0,0.02)" }}>
+        <div style={{ width: isMobile ? "100%" : "360px", height: isMobile ? "100dvh" : "100%", position: isMobile ? "fixed" : "relative", top: 0, right: 0, background: "white", zIndex: 200, display: "flex", flexDirection: "column", borderLeft: isMobile ? "none" : "1px solid var(--border)", boxShadow: isMobile ? "none" : "-10px 0 30px rgba(0,0,0,0.02)", paddingBottom: isMobile ? "env(safe-area-inset-bottom, 0px)" : 0 }}>
           <div style={{ padding: "32px 28px", borderBottom: "1px solid var(--border-light)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h2 style={{ fontSize: 22, fontWeight: 900 }}>Giỏ hàng</h2>
             {isMobile && <button onClick={() => setIsCartOpen(false)} style={{ border: "none", background: "none" }}><HiChevronLeft size={28} /></button>}
           </div>
 
-          <div style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
+          <div className="pos-scroll-area" style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
             {cart.map((item, idx) => {
               const variant = item.product?.variants?.find(v => v.id === item.variant_id);
               return (
@@ -788,8 +788,8 @@ export default function POSPage() {
 
       {/* Product Options Modal (Size + Toppings) */}
       {activeProduct && (
-        <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, backdropFilter: "blur(8px)" }} onClick={() => setActiveProduct(null)}>
-          <div style={{ background: "white", padding: 32, borderRadius: 32, maxWidth: 500, width: "95%", boxShadow: "var(--shadow-lg)" }} className="animate-fade-in" onClick={(e) => e.stopPropagation()}>
+        <div style={{ position: "fixed", top: 0, left: 0, width: "100dvw", height: "100dvh", background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, backdropFilter: "blur(8px)", padding: isMobile ? "8px" : 0 }} onClick={() => setActiveProduct(null)}>
+          <div style={{ background: "white", padding: isMobile ? 14 : 32, borderRadius: isMobile ? 18 : 32, maxWidth: 500, width: "95%", maxHeight: isMobile ? "96dvh" : "auto", overflowY: isMobile ? "auto" : "visible", boxShadow: "var(--shadow-lg)" }} className="animate-fade-in" onClick={(e) => e.stopPropagation()}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <div style={{ flex: 1 }}>
                 <h3 style={{ fontSize: 22, fontWeight: 900 }}>{activeProduct.name_vi}{activeProduct.name_en && activeProduct.name_en !== activeProduct.name_vi ? ` (${activeProduct.name_en})` : ''}</h3>
@@ -871,9 +871,9 @@ export default function POSPage() {
             </div>
 
             {/* Topping Selection */}
-            <div style={{ marginBottom: 32 }}>
+            <div style={{ marginBottom: isMobile ? 20 : 32 }}>
               <p style={{ fontWeight: 900, fontSize: 13, marginBottom: 12, color: "var(--text-muted)" }}>TOPPING THÊM</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 180, overflowY: "auto", paddingRight: 8 }} className="custom-scroll">
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: isMobile ? 130 : 180, overflowY: "auto", paddingRight: 8 }} className="custom-scroll">
                 {toppings.map(t => (
                   <div key={t.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderRadius: 14, border: (selectedToppings[t.id] || 0) > 0 ? "1px solid var(--accent)" : "1px solid var(--border)", background: (selectedToppings[t.id] || 0) > 0 ? "var(--bg-primary)" : "white" }}>
                     <span style={{ fontWeight: 700 }}>{t.name} <span style={{ color: "var(--accent)", fontSize: 12 }}>(+{formatVND(t.price)})</span></span>
@@ -897,7 +897,7 @@ export default function POSPage() {
               </div>
             </div>
 
-            <button onClick={confirmAddToCart} className="btn-primary" style={{ width: "100%", padding: 18, fontSize: 16 }}>
+            <button onClick={confirmAddToCart} className="btn-primary" style={{ width: "100%", padding: isMobile ? 14 : 18, fontSize: isMobile ? 14 : 16, position: "sticky", bottom: 0 }}>
               THÊM VÀO GIỎ • {formatVND(((selectedVariant?.price || 0) + toppings.reduce((s, t) => s + t.price * (selectedToppings[t.id] || 0), 0)) * productQty)}
             </button>
           </div>
@@ -1002,7 +1002,7 @@ export default function POSPage() {
         <button
           onClick={() => setIsCartOpen(true)}
           style={{
-            position: "fixed", bottom: 20, right: 20, left: 20,
+            position: "fixed", bottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)", right: 16, left: 16,
             background: "black", color: "white", padding: "16px 24px",
             borderRadius: "16px", border: "none", display: "flex",
             justifyContent: "space-between", alignItems: "center",
